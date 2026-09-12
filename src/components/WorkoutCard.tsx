@@ -42,15 +42,15 @@ export default function WorkoutCard({ workout, completed, onClick }: WorkoutCard
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="mb-1.5 flex items-center gap-2">
-            <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${typeColors[workout.type]}`}>
+            <span className={`inline-block rounded-full px-2 py-0.5 text-sm font-medium ${typeColors[workout.type]}`}>
               {typeLabels[workout.type]}
             </span>
-            <span className="text-xs text-zinc-400">{workout.duration}</span>
+            <span className="text-sm text-zinc-400">{workout.duration}</span>
           </div>
-          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+          <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
             {workout.title}
           </h3>
-          <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2">
+          <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400 line-clamp-2">
             {workout.description}
           </p>
         </div>

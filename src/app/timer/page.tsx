@@ -133,8 +133,8 @@ export default function TimerPage() {
   return (
     <main className="mx-auto max-w-lg px-4 pt-8">
       <header className="mb-6">
-        <h1 className="text-xl font-bold tracking-tight">Timer</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        <h1 className="text-2xl font-bold tracking-tight">Timer</h1>
+        <p className="text-base text-zinc-500 dark:text-zinc-400">
           Stopwatch met Hyrox-splits of interval timer
         </p>
       </header>
@@ -142,7 +142,7 @@ export default function TimerPage() {
       <div className="mb-6 flex rounded-xl bg-zinc-100 p-1 dark:bg-zinc-800">
         <button
           onClick={() => { if (!running) { setMode("stopwatch"); resetTimer(); } }}
-          className={`flex-1 rounded-lg py-2 text-sm font-medium transition-all ${
+          className={`flex-1 rounded-lg py-2 text-base font-medium transition-all ${
             mode === "stopwatch"
               ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-100"
               : "text-zinc-500 dark:text-zinc-400"
@@ -152,7 +152,7 @@ export default function TimerPage() {
         </button>
         <button
           onClick={() => { if (!running) { setMode("interval"); resetTimer(); } }}
-          className={`flex-1 rounded-lg py-2 text-sm font-medium transition-all ${
+          className={`flex-1 rounded-lg py-2 text-base font-medium transition-all ${
             mode === "interval"
               ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-100"
               : "text-zinc-500 dark:text-zinc-400"
@@ -165,11 +165,11 @@ export default function TimerPage() {
       {mode === "stopwatch" ? (
         <>
           <div className="mb-8 text-center">
-            <p className="text-5xl font-mono font-bold tabular-nums tracking-tight">
+            <p className="text-6xl font-mono font-bold tabular-nums tracking-tight">
               {formatTime(elapsed)}
             </p>
             {currentLapIndex < hyroxLapLabels.length && (
-              <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
+              <p className="mt-2 text-base text-amber-600 dark:text-amber-400">
                 {hyroxLapLabels[currentLapIndex]}
               </p>
             )}
@@ -220,7 +220,7 @@ export default function TimerPage() {
           {laps.length > 0 && (
             <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
               <div className="border-b border-zinc-100 px-4 py-2.5 dark:border-zinc-800">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                   Splits
                 </h3>
               </div>
@@ -230,10 +230,10 @@ export default function TimerPage() {
                     key={laps.length - 1 - i}
                     className="flex items-center justify-between border-b border-zinc-50 px-4 py-2.5 last:border-0 dark:border-zinc-800/50"
                   >
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <span className="text-base font-medium text-zinc-700 dark:text-zinc-300">
                       {lap.label}
                     </span>
-                    <span className="font-mono text-sm tabular-nums text-zinc-900 dark:text-zinc-100">
+                    <span className="font-mono text-base tabular-nums text-zinc-900 dark:text-zinc-100">
                       {formatTime(lap.time)}
                     </span>
                   </div>
@@ -242,8 +242,8 @@ export default function TimerPage() {
               {laps.length > 0 && (
                 <div className="border-t border-zinc-200 px-4 py-2.5 dark:border-zinc-700">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Totaal</span>
-                    <span className="font-mono text-sm font-semibold tabular-nums text-amber-600 dark:text-amber-400">
+                    <span className="text-base font-semibold text-zinc-700 dark:text-zinc-300">Totaal</span>
+                    <span className="font-mono text-base font-semibold tabular-nums text-amber-600 dark:text-amber-400">
                       {formatTime(laps.reduce((sum, l) => sum + l.time, 0))}
                     </span>
                   </div>
@@ -257,7 +257,7 @@ export default function TimerPage() {
           {!running && intervalRemaining === workTime && currentRound === 1 && (
             <div className="mb-6 space-y-4">
               <div>
-                <label className="mb-1 block text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                <label className="mb-1 block text-base font-medium text-zinc-600 dark:text-zinc-400">
                   Work (sec)
                 </label>
                 <input
@@ -273,7 +273,7 @@ export default function TimerPage() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                <label className="mb-1 block text-base font-medium text-zinc-600 dark:text-zinc-400">
                   Rest (sec)
                 </label>
                 <input
@@ -285,7 +285,7 @@ export default function TimerPage() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                <label className="mb-1 block text-base font-medium text-zinc-600 dark:text-zinc-400">
                   Rondes
                 </label>
                 <input
@@ -300,15 +300,15 @@ export default function TimerPage() {
           )}
 
           <div className="mb-8 text-center">
-            <p className="mb-1 text-sm font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+            <p className="mb-1 text-base font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
               Ronde {currentRound}/{rounds}
             </p>
-            <p className={`text-6xl font-mono font-bold tabular-nums ${
+            <p className={`text-7xl font-mono font-bold tabular-nums ${
               isWork ? "text-amber-500" : "text-green-500"
             }`}>
               {formatTimeShort(intervalRemaining * 1000)}
             </p>
-            <p className={`mt-2 text-lg font-semibold ${
+            <p className={`mt-2 text-xl font-semibold ${
               isWork ? "text-amber-600 dark:text-amber-400" : "text-green-600 dark:text-green-400"
             }`}>
               {isWork ? "WORK" : "REST"}

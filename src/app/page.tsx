@@ -43,8 +43,8 @@ export default function Home() {
             H
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">Hyrox Training</h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">8-weken plan</p>
+            <h1 className="text-2xl font-bold tracking-tight">Hyrox Training</h1>
+            <p className="text-base text-zinc-500 dark:text-zinc-400">8-weken plan</p>
           </div>
         </div>
       </header>
@@ -52,14 +52,14 @@ export default function Home() {
       <section className="mb-6 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 p-5 text-white shadow-lg">
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-amber-100">
+            <p className="text-sm font-medium uppercase tracking-wider text-amber-100">
               Week {currentWeek} van 8
             </p>
-            <h2 className="text-lg font-bold">{weekPhases[currentWeek - 1]}</h2>
+            <h2 className="text-xl font-bold">{weekPhases[currentWeek - 1]}</h2>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-bold">{weekCompleted}/{weekWorkouts.length}</p>
-            <p className="text-xs text-amber-100">workouts</p>
+            <p className="text-3xl font-bold">{weekCompleted}/{weekWorkouts.length}</p>
+            <p className="text-sm text-amber-100">workouts</p>
           </div>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-amber-700/40">
@@ -68,19 +68,19 @@ export default function Home() {
             style={{ width: `${progress}%` }}
           />
         </div>
-        <p className="mt-1.5 text-xs text-amber-100">
+        <p className="mt-1.5 text-sm text-amber-100">
           {completedCount} van {totalWorkouts} workouts voltooid
         </p>
       </section>
 
       <section className="mb-6">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+          <h2 className="text-base font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
             Deze week
           </h2>
           <Link
             href="/training"
-            className="text-sm font-medium text-amber-600 hover:text-amber-700 dark:text-amber-400"
+            className="text-base font-medium text-amber-600 hover:text-amber-700 dark:text-amber-400"
           >
             Alle weken
           </Link>
@@ -100,7 +100,7 @@ export default function Home() {
       </section>
 
       <section className="mb-6">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+        <h2 className="mb-3 text-base font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
           Snel starten
         </h2>
         <div className="grid grid-cols-2 gap-3">
@@ -112,7 +112,7 @@ export default function Home() {
               <circle cx="12" cy="12" r="10" />
               <polyline points="12 6 12 12 16 14" />
             </svg>
-            <span className="text-sm font-medium">Timer</span>
+            <span className="text-base font-medium">Timer</span>
           </Link>
           <Link
             href="/stations"
@@ -122,7 +122,7 @@ export default function Home() {
               <circle cx="12" cy="12" r="10" />
               <path d="M8 12l2 2 4-4" />
             </svg>
-            <span className="text-sm font-medium">Stations</span>
+            <span className="text-base font-medium">Stations</span>
           </Link>
         </div>
       </section>

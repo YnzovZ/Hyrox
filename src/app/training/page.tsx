@@ -39,8 +39,8 @@ export default function TrainingPage() {
   return (
     <main className="mx-auto max-w-lg px-4 pt-8">
       <header className="mb-6">
-        <h1 className="text-xl font-bold tracking-tight">Trainingsplan</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        <h1 className="text-2xl font-bold tracking-tight">Trainingsplan</h1>
+        <p className="text-base text-zinc-500 dark:text-zinc-400">
           8 weken naar race day
         </p>
       </header>
@@ -80,14 +80,14 @@ export default function TrainingPage() {
       <div className="mb-4 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-semibold">{weekPhases[activeWeek - 1]}</h2>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Week {activeWeek}</p>
+            <h2 className="text-lg font-semibold">{weekPhases[activeWeek - 1]}</h2>
+            <p className="text-base text-zinc-500 dark:text-zinc-400">Week {activeWeek}</p>
           </div>
           <div className="text-right">
-            <p className="text-lg font-bold text-amber-600 dark:text-amber-400">
+            <p className="text-xl font-bold text-amber-600 dark:text-amber-400">
               {weekCompletedCount}/{weekWorkouts.length}
             </p>
-            <p className="text-xs text-zinc-400">voltooid</p>
+            <p className="text-sm text-zinc-400">voltooid</p>
           </div>
         </div>
       </div>
@@ -95,7 +95,7 @@ export default function TrainingPage() {
       <div className="flex flex-col gap-3">
         {weekWorkouts.map((workout) => (
           <div key={workout.id} className="animate-fade-in">
-            <div className="mb-1 text-xs font-medium text-zinc-400 dark:text-zinc-500">
+            <div className="mb-1 text-sm font-medium text-zinc-400 dark:text-zinc-500">
               Dag {workout.day} - {dayNames[workout.day] || `Dag ${workout.day}`}
             </div>
             <WorkoutCard

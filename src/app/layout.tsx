@@ -17,6 +17,10 @@ export const metadata: Metadata = {
   title: "Hyrox Training",
   description: "Je persoonlijke 8-weken Hyrox trainingsplan. Van basis tot race day.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon-512.png",
+    apple: "/apple-touch-icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

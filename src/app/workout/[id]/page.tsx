@@ -57,7 +57,7 @@ export default function WorkoutDetailPage() {
     <main className="mx-auto max-w-lg px-4 pt-6">
       <button
         onClick={() => router.back()}
-        className="mb-4 flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+        className="mb-4 flex items-center gap-1 text-base text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M19 12H5" />
@@ -67,27 +67,27 @@ export default function WorkoutDetailPage() {
       </button>
 
       <div className="mb-2 flex items-center gap-2">
-        <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${typeColors[workout.type]}`}>
+        <span className={`rounded-full px-2.5 py-0.5 text-sm font-medium ${typeColors[workout.type]}`}>
           {typeLabels[workout.type]}
         </span>
-        <span className="text-xs text-zinc-400">
+        <span className="text-sm text-zinc-400">
           Week {workout.week} - {weekPhases[workout.week - 1]}
         </span>
       </div>
 
-      <h1 className="mb-1 text-2xl font-bold tracking-tight">{workout.title}</h1>
-      <p className="mb-6 text-sm text-zinc-500 dark:text-zinc-400">{workout.description}</p>
+      <h1 className="mb-1 text-3xl font-bold tracking-tight">{workout.title}</h1>
+      <p className="mb-6 text-base text-zinc-500 dark:text-zinc-400">{workout.description}</p>
 
       <div className="mb-6 flex gap-4">
-        <div className="flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <div className="flex items-center gap-1.5 text-base text-zinc-500 dark:text-zinc-400">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </svg>
           {workout.duration}
         </div>
-        <div className="flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <div className="flex items-center gap-1.5 text-base text-zinc-500 dark:text-zinc-400">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
           </svg>
           {workout.difficulty === "easy" ? "Makkelijk" : workout.difficulty === "moderate" ? "Gemiddeld" : workout.difficulty === "hard" ? "Zwaar" : "Race"}
@@ -95,7 +95,7 @@ export default function WorkoutDetailPage() {
       </div>
 
       <section className="mb-8">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+        <h2 className="mb-3 text-base font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
           Oefeningen
         </h2>
         <div className="flex flex-col gap-2">
@@ -106,10 +106,10 @@ export default function WorkoutDetailPage() {
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-medium text-zinc-900 dark:text-zinc-100">
+                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                     {exercise.name}
                   </h3>
-                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
                     {exercise.sets && <span>{exercise.sets} sets</span>}
                     {exercise.reps && <span>{exercise.reps} reps</span>}
                     {exercise.duration && <span>{exercise.duration}</span>}
@@ -118,7 +118,7 @@ export default function WorkoutDetailPage() {
                     {exercise.rest && <span>Rust: {exercise.rest}</span>}
                   </div>
                   {exercise.notes && (
-                    <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-400">
+                    <p className="mt-1.5 text-sm text-amber-600 dark:text-amber-400">
                       {exercise.notes}
                     </p>
                   )}
@@ -127,7 +127,7 @@ export default function WorkoutDetailPage() {
                       href={exercise.videoUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50"
+                      className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -137,7 +137,7 @@ export default function WorkoutDetailPage() {
                     </a>
                   )}
                 </div>
-                <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-zinc-100 text-sm font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
                   {i + 1}
                 </span>
               </div>
@@ -148,7 +148,7 @@ export default function WorkoutDetailPage() {
 
       <div className="pb-4">
         {completed ? (
-          <div className="flex items-center justify-center gap-2 rounded-xl bg-green-100 py-3.5 text-sm font-semibold text-green-800 dark:bg-green-900/30 dark:text-green-300">
+          <div className="flex items-center justify-center gap-2 rounded-xl bg-green-100 py-3.5 text-base font-semibold text-green-800 dark:bg-green-900/30 dark:text-green-300">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 6L9 17l-5-5" />
             </svg>
@@ -157,7 +157,7 @@ export default function WorkoutDetailPage() {
         ) : (
           <button
             onClick={handleComplete}
-            className="w-full rounded-xl bg-amber-500 py-3.5 text-sm font-semibold text-white shadow-lg transition-all hover:bg-amber-600 active:scale-[0.98]"
+            className="w-full rounded-xl bg-amber-500 py-3.5 text-base font-semibold text-white shadow-lg transition-all hover:bg-amber-600 active:scale-[0.98]"
           >
             Markeer als voltooid
           </button>
