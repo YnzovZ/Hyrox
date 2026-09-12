@@ -10,6 +10,7 @@ export interface Exercise {
   weight?: string;
   rest?: string;
   notes?: string;
+  videoUrl?: string;
 }
 
 export interface Workout {
@@ -33,6 +34,7 @@ export interface Station {
   description: string;
   tips: string[];
   muscles: string[];
+  videoUrl?: string;
 }
 
 export const stations: Station[] = [
@@ -48,6 +50,7 @@ export const stations: Station[] = [
       "Buig licht door je knieen bij elke trek",
     ],
     muscles: ["Lats", "Triceps", "Core", "Hamstrings"],
+    videoUrl: "https://www.youtube.com/watch?v=t8teWM7jbDI",
   },
   {
     id: 2,
@@ -61,6 +64,7 @@ export const stations: Station[] = [
       "Korte, krachtige stappen",
     ],
     muscles: ["Quads", "Glutes", "Schouders", "Core"],
+    videoUrl: "https://www.youtube.com/watch?v=yKAxMSmHrd0",
   },
   {
     id: 3,
@@ -74,6 +78,7 @@ export const stations: Station[] = [
       "Gebruik je rug en biceps",
     ],
     muscles: ["Rug", "Biceps", "Onderarmen", "Core"],
+    videoUrl: "https://www.youtube.com/watch?v=WgRM2e5U6H0",
   },
   {
     id: 4,
@@ -87,6 +92,7 @@ export const stations: Station[] = [
       "Houd een constant ritme aan",
     ],
     muscles: ["Full body", "Quads", "Core", "Schouders"],
+    videoUrl: "https://www.youtube.com/watch?v=W5gc1Inyha0",
   },
   {
     id: 5,
@@ -100,6 +106,7 @@ export const stations: Station[] = [
       "Houd een split van 1:55-2:10 aan",
     ],
     muscles: ["Benen", "Rug", "Biceps", "Core"],
+    videoUrl: "https://www.youtube.com/watch?v=gvM-WuRfbkY",
   },
   {
     id: 6,
@@ -113,6 +120,7 @@ export const stations: Station[] = [
       "Adem rustig door, niet inhouden",
     ],
     muscles: ["Onderarmen", "Traps", "Core", "Schouders"],
+    videoUrl: "https://www.youtube.com/watch?v=lLAw6fUccKA",
   },
   {
     id: 7,
@@ -126,6 +134,7 @@ export const stations: Station[] = [
       "Houd je bovenlichaam rechtop",
     ],
     muscles: ["Quads", "Glutes", "Core", "Schouders"],
+    videoUrl: "https://www.youtube.com/watch?v=29lLj4p6Slo",
   },
   {
     id: 8,
@@ -139,8 +148,40 @@ export const stations: Station[] = [
       "Breek op in sets als het nodig is: 25-25-25",
     ],
     muscles: ["Quads", "Schouders", "Triceps", "Core"],
+    videoUrl: "https://www.youtube.com/watch?v=t3-CS4e4mus",
   },
 ];
+
+const exerciseVideos: Record<string, string> = {
+  "Plank": "https://www.youtube.com/watch?v=ASdvN_XEl_c",
+  "Dead Bug": "https://www.youtube.com/watch?v=bxn9FBrt4-A",
+  "Side Plank": "https://www.youtube.com/watch?v=iNbH7_edNI8",
+  "Goblet Squat": "https://www.youtube.com/watch?v=MxsFDhcyFyE",
+  "Romanian Deadlift": "https://www.youtube.com/watch?v=2SHsk9AzdjA",
+  "Overhead Press": "https://www.youtube.com/watch?v=F3QY5vMz_6I",
+  "Bent Over Row": "https://www.youtube.com/watch?v=FWJR5Ve8bnQ",
+  "Farmers Walk": "https://www.youtube.com/watch?v=lLAw6fUccKA",
+  "Front Squat": "https://www.youtube.com/watch?v=wyDbagKS7Rg",
+  "Sled Push simulatie (Prowler)": "https://www.youtube.com/watch?v=yKAxMSmHrd0",
+  "Cable Row": "https://www.youtube.com/watch?v=xQNrFHEMhI4",
+  "Walking Lunges": "https://www.youtube.com/watch?v=_qSuiZ62vqI",
+  "Lat Pulldown": "https://www.youtube.com/watch?v=CAwf7n6Luuc",
+  "Trap Bar Deadlift": "https://www.youtube.com/watch?v=ZIjM09eQH-Q",
+  "Sled Push": "https://www.youtube.com/watch?v=yKAxMSmHrd0",
+  "Sled Pull (rope)": "https://www.youtube.com/watch?v=WgRM2e5U6H0",
+  "Sled Pull": "https://www.youtube.com/watch?v=WgRM2e5U6H0",
+  "Wall Ball": "https://www.youtube.com/watch?v=t3-CS4e4mus",
+  "Wall Balls": "https://www.youtube.com/watch?v=t3-CS4e4mus",
+  "Sandbag Hold Squats": "https://www.youtube.com/watch?v=29lLj4p6Slo",
+  "Sandbag Lunges": "https://www.youtube.com/watch?v=29lLj4p6Slo",
+  "SkiErg": "https://www.youtube.com/watch?v=t8teWM7jbDI",
+  "Rowing": "https://www.youtube.com/watch?v=gvM-WuRfbkY",
+  "Burpee Broad Jumps": "https://www.youtube.com/watch?v=W5gc1Inyha0",
+  "Farmers Carry": "https://www.youtube.com/watch?v=lLAw6fUccKA",
+  "Kettlebell Swings": "https://www.youtube.com/watch?v=YSxHifyI6s8",
+  "Box Jumps": "https://www.youtube.com/watch?v=G-bxQY57mKc",
+  "Burpees": "https://www.youtube.com/watch?v=qLBImHhCXSw",
+};
 
 export function generateTrainingPlan(): Workout[] {
   const workouts: Workout[] = [];
@@ -615,6 +656,10 @@ export function generateTrainingPlan(): Workout[] {
         ...day,
         id: `w${weekIndex + 1}d${day.day}`,
         week: weekIndex + 1,
+        exercises: day.exercises.map((ex) => ({
+          ...ex,
+          videoUrl: ex.videoUrl ?? exerciseVideos[ex.name],
+        })),
       });
     });
   });
