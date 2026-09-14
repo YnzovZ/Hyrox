@@ -43,7 +43,7 @@ export default function Home() {
             H
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Hyrox Training</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Beast Mode Veer en Yns</h1>
             <p className="text-base text-zinc-500 dark:text-zinc-400">19-weken plan</p>
           </div>
         </div>
