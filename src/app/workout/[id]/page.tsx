@@ -35,7 +35,7 @@ function WeightBadge({ exerciseName }: { exerciseName: string }) {
     return (
       <form
         onSubmit={(e) => { e.preventDefault(); handleSave(); }}
-        className="mt-1.5 flex items-center gap-2"
+        className="inline-flex items-center"
       >
         <input
           ref={inputRef}
@@ -45,7 +45,7 @@ function WeightBadge({ exerciseName }: { exerciseName: string }) {
           onChange={(e) => setInputVal(e.target.value)}
           onBlur={handleSave}
           placeholder="bv. 20kg"
-          className="w-24 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+          className="w-20 rounded border border-zinc-300 bg-white px-1.5 py-0.5 text-sm text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
         />
       </form>
     );
@@ -54,7 +54,7 @@ function WeightBadge({ exerciseName }: { exerciseName: string }) {
   return (
     <button
       onClick={() => { setInputVal(weight ?? ""); setEditing(true); }}
-      className="mt-1.5 inline-flex items-center gap-1 rounded-lg bg-zinc-100 px-2.5 py-1 text-sm text-zinc-600 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+      className="inline-flex items-center gap-1 text-sm text-amber-600 dark:text-amber-400"
     >
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M6.5 6.5h11v11" />
@@ -62,7 +62,7 @@ function WeightBadge({ exerciseName }: { exerciseName: string }) {
         <path d="M17 17l4 4" />
         <path d="M17.5 6.5l-11 11" />
       </svg>
-      {weight ? weight : "Gewicht invoeren"}
+      {weight ? weight : "Gewicht"}
     </button>
   );
 }
@@ -186,13 +186,13 @@ export default function WorkoutDetailPage() {
                       {exercise.duration && <span>{exercise.duration}</span>}
                       {exercise.distance && <span>{exercise.distance}</span>}
                       {exercise.weight && <span>{exercise.weight}</span>}
+                      {showWeight && <WeightBadge exerciseName={exercise.name} />}
                     </div>
                     {exercise.notes && (
                       <p className="mt-1.5 text-sm text-amber-600 dark:text-amber-400">
                         {exercise.notes}
                       </p>
                     )}
-                    {showWeight && <WeightBadge exerciseName={exercise.name} />}
                     <div className="mt-2 flex flex-wrap gap-2">
                       {exercise.videoUrl && (
                         <a
