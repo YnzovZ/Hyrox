@@ -11,6 +11,7 @@ export interface Exercise {
   rest?: string;
   notes?: string;
   videoUrl?: string;
+  isBonus?: boolean;
 }
 
 export interface Workout {
@@ -323,6 +324,15 @@ export const exerciseAlternatives: Record<string, ExerciseAlternative[]> = {
     { name: "Grip Trainer + Incline Walk", notes: "Machine. Grip trainen apart, cardio op de loopband.", machine: true },
   ],
 };
+
+const bonusPool: Exercise[] = [
+  { name: "Calf Raises", sets: 3, reps: "15", notes: "Rustig tempo, volledige range", isBonus: true },
+  { name: "Face Pulls", sets: 3, reps: "15", notes: "Licht gewicht, schouderbladen samentrekken", isBonus: true },
+  { name: "Pallof Press", sets: 3, reps: "10 per kant", notes: "Core anti-rotatie", isBonus: true },
+  { name: "Dead Bug", sets: 3, reps: "10 per kant", notes: "Langzaam en gecontroleerd", isBonus: true },
+  { name: "Banded Lateral Walk", sets: 3, reps: "12 per kant", notes: "Heupstabiliteit", isBonus: true },
+  { name: "Side Plank", sets: 2, duration: "30 sec per kant", notes: "Core en heupstabiliteit", isBonus: true },
+];
 
 export function generateTrainingPlan(): Workout[] {
   const workouts: Workout[] = [];
@@ -1313,16 +1323,22 @@ export function generateTrainingPlan(): Workout[] {
     },
   ];
 
+  let bonusIndex = 0;
   weekPlans.forEach((weekPlan, weekIndex) => {
     weekPlan.days.forEach((day) => {
+      const exercises: Exercise[] = day.exercises.map((ex) => ({
+        ...ex,
+        videoUrl: ex.videoUrl ?? exerciseVideos[ex.name],
+      }));
+      if (day.type === "strength") {
+        exercises.push({ ...bonusPool[bonusIndex % bonusPool.length] });
+        bonusIndex++;
+      }
       workouts.push({
         ...day,
         id: `w${weekIndex + 1}d${day.day}`,
         week: weekIndex + 1,
-        exercises: day.exercises.map((ex) => ({
-          ...ex,
-          videoUrl: ex.videoUrl ?? exerciseVideos[ex.name],
-        })),
+        exercises,
       });
     });
   });

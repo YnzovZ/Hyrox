@@ -3,9 +3,9 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { generateTrainingPlan, weekPhases, Workout, exerciseAlternatives, ExerciseAlternative } from "@/lib/data";
-import { isWorkoutCompleted, markWorkoutComplete, getExerciseWeight, saveExerciseWeight, getExerciseProgress, saveExerciseProgress } from "@/lib/storage";
+import { isWorkoutCompleted, markWorkoutComplete, getExerciseWeight, saveExerciseWeight, getExerciseProgress, saveExerciseProgress, getChosenAlternative, saveChosenAlternative } from "@/lib/storage";
 
-function ExerciseBadge({ index, stage, onTap }: { index: number; stage: number; onTap: () => void }) {
+function ExerciseBadge({ label, stage, onTap }: { label: string; stage: number; onTap: () => void }) {
   const done = stage >= 3;
   const fillHeight = stage === 1 ? "33%" : stage === 2 ? "66%" : "0%";
   const fillColor = stage === 1 ? "#ef4444" : stage === 2 ? "#eab308" : "transparent";
@@ -30,7 +30,7 @@ function ExerciseBadge({ index, stage, onTap }: { index: number; stage: number; 
           </svg>
         ) : (
           <span className={`text-sm font-semibold ${stage > 0 ? "text-white" : "text-zinc-500 dark:text-zinc-400"}`}>
-            {index + 1}
+            {label}
           </span>
         )}
       </span>
@@ -108,6 +108,7 @@ export default function WorkoutDetailPage() {
   const [mounted, setMounted] = useState(false);
   const [altModal, setAltModal] = useState<{ name: string; alts: ExerciseAlternative[] } | null>(null);
   const [exProgress, setExProgress] = useState<number[]>([]);
+  const [chosenAlts, setChosenAlts] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setMounted(true);
@@ -118,6 +119,12 @@ export default function WorkoutDetailPage() {
       setCompleted(isWorkoutCompleted(found.id));
       const saved = getExerciseProgress(found.id);
       setExProgress(saved.length === found.exercises.length ? saved : new Array(found.exercises.length).fill(0));
+      const alts: Record<string, string> = {};
+      found.exercises.forEach((ex) => {
+        const alt = getChosenAlternative(found.id, ex.name);
+        if (alt) alts[ex.name] = alt;
+      });
+      setChosenAlts(alts);
     }
   }, [params.id]);
 
@@ -136,7 +143,8 @@ export default function WorkoutDetailPage() {
     next[index] = (next[index] ?? 0) < 3 ? (next[index] ?? 0) + 1 : 0;
     setExProgress(next);
     saveExerciseProgress(workout.id, next);
-    if (next.every((s) => s >= 3)) {
+    const allRegularDone = workout.exercises.every((ex, i) => ex.isBonus || next[i] >= 3);
+    if (allRegularDone) {
       handleComplete();
     }
   }
@@ -240,6 +248,11 @@ export default function WorkoutDetailPage() {
                         {exercise.notes}
                       </p>
                     )}
+                    {chosenAlts[exercise.name] && (
+                      <p className="mt-1.5 text-sm text-purple-600 dark:text-purple-400">
+                        Gedaan als: {chosenAlts[exercise.name]}
+                      </p>
+                    )}
                     <div className="mt-2 flex flex-wrap gap-2">
                       {exercise.videoUrl && (
                         <a
@@ -272,7 +285,7 @@ export default function WorkoutDetailPage() {
                     </div>
                   </div>
                   <ExerciseBadge
-                    index={i}
+                    label={exercise.isBonus ? "B" : String(i + 1)}
                     stage={exProgress[i] ?? 0}
                     onTap={() => handleExerciseTap(i)}
                   />
@@ -326,22 +339,54 @@ export default function WorkoutDetailPage() {
               </button>
             </div>
             <div className="flex flex-col gap-3">
-              {altModal.alts.map((alt, i) => (
-                <div
-                  key={i}
-                  className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800"
-                >
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{alt.name}</h4>
-                    {alt.machine && (
-                      <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                        Machine
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{alt.notes}</p>
-                </div>
-              ))}
+              {altModal.alts.map((alt, i) => {
+                const isChosen = chosenAlts[altModal.name] === alt.name;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      if (!workout) return;
+                      const newVal = isChosen ? null : alt.name;
+                      if (newVal) {
+                        setChosenAlts((prev) => ({ ...prev, [altModal.name]: newVal }));
+                      } else {
+                        setChosenAlts((prev) => {
+                          const copy = { ...prev };
+                          delete copy[altModal.name];
+                          return copy;
+                        });
+                      }
+                      saveChosenAlternative(workout.id, altModal.name, newVal);
+                    }}
+                    className={`rounded-xl border p-4 text-left transition-colors ${
+                      isChosen
+                        ? "border-green-400 bg-green-50 dark:border-green-600 dark:bg-green-950/30"
+                        : "border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 ${
+                        isChosen
+                          ? "border-green-500 bg-green-500"
+                          : "border-zinc-300 dark:border-zinc-600"
+                      }`}>
+                        {isChosen && (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20 6L9 17l-5-5" />
+                          </svg>
+                        )}
+                      </div>
+                      <h4 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{alt.name}</h4>
+                      {alt.machine && (
+                        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                          Machine
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 pl-7 text-sm text-zinc-500 dark:text-zinc-400">{alt.notes}</p>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

@@ -19,6 +19,7 @@ const STORAGE_KEYS = {
   currentWeek: "hyrox_current_week",
   exerciseWeights: "hyrox_weights",
   exerciseProgress: "hyrox_exercise_progress",
+  chosenAlternatives: "hyrox_chosen_alts",
 } as const;
 
 function safeGet<T>(key: string, fallback: T): T {
@@ -95,4 +96,20 @@ export function saveExerciseProgress(workoutId: string, progress: number[]): voi
   const all = safeGet<Record<string, number[]>>(STORAGE_KEYS.exerciseProgress, {});
   all[workoutId] = progress;
   safeSet(STORAGE_KEYS.exerciseProgress, all);
+}
+
+export function getChosenAlternative(workoutId: string, exerciseName: string): string | null {
+  const all = safeGet<Record<string, Record<string, string>>>(STORAGE_KEYS.chosenAlternatives, {});
+  return all[workoutId]?.[exerciseName] ?? null;
+}
+
+export function saveChosenAlternative(workoutId: string, exerciseName: string, altName: string | null): void {
+  const all = safeGet<Record<string, Record<string, string>>>(STORAGE_KEYS.chosenAlternatives, {});
+  if (!all[workoutId]) all[workoutId] = {};
+  if (altName) {
+    all[workoutId][exerciseName] = altName;
+  } else {
+    delete all[workoutId][exerciseName];
+  }
+  safeSet(STORAGE_KEYS.chosenAlternatives, all);
 }
