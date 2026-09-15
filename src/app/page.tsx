@@ -3,18 +3,22 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { generateTrainingPlan, weekPhases, Workout } from "@/lib/data";
-import { getCurrentWeek, getCompletedWorkouts, CompletedWorkout } from "@/lib/storage";
+import { getCurrentWeek, getCompletedWorkouts, CompletedWorkout, getSwappedWorkouts, SwappedWorkout } from "@/lib/storage";
 import WorkoutCard from "@/components/WorkoutCard";
+import SwapModal from "@/components/SwapModal";
 
 export default function Home() {
   const [currentWeek, setCurrentWeek] = useState(1);
   const [completed, setCompleted] = useState<CompletedWorkout[]>([]);
+  const [swapped, setSwapped] = useState<SwappedWorkout[]>([]);
   const [mounted, setMounted] = useState(false);
+  const [swapTarget, setSwapTarget] = useState<Workout | null>(null);
 
   useEffect(() => {
     setMounted(true);
     setCurrentWeek(getCurrentWeek());
     setCompleted(getCompletedWorkouts());
+    setSwapped(getSwappedWorkouts());
   }, []);
 
   const workouts = generateTrainingPlan();
@@ -91,9 +95,11 @@ export default function Home() {
               key={workout.id}
               workout={workout}
               completed={completed.some((c) => c.workoutId === workout.id)}
+              swapped={swapped.find((s) => s.workoutId === workout.id) ?? null}
               onClick={() => {
                 window.location.href = `/workout/${workout.id}`;
               }}
+              onSwap={() => setSwapTarget(workout)}
             />
           ))}
         </div>
@@ -126,6 +132,18 @@ export default function Home() {
           </Link>
         </div>
       </section>
+
+      {swapTarget && (
+        <SwapModal
+          workout={swapTarget}
+          onClose={() => setSwapTarget(null)}
+          onSaved={() => {
+            setSwapTarget(null);
+            setCompleted(getCompletedWorkouts());
+            setSwapped(getSwappedWorkouts());
+          }}
+        />
+      )}
     </main>
   );
 }

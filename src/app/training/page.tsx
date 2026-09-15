@@ -1,19 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { generateTrainingPlan, weekPhases, dayNames } from "@/lib/data";
-import { getCurrentWeek, setCurrentWeek as saveCurrentWeek, getCompletedWorkouts, CompletedWorkout } from "@/lib/storage";
+import { generateTrainingPlan, weekPhases, dayNames, Workout } from "@/lib/data";
+import { getCurrentWeek, setCurrentWeek as saveCurrentWeek, getCompletedWorkouts, CompletedWorkout, getSwappedWorkouts, SwappedWorkout } from "@/lib/storage";
 import WorkoutCard from "@/components/WorkoutCard";
+import SwapModal from "@/components/SwapModal";
 
 export default function TrainingPage() {
   const [activeWeek, setActiveWeek] = useState(1);
   const [completed, setCompleted] = useState<CompletedWorkout[]>([]);
+  const [swapped, setSwapped] = useState<SwappedWorkout[]>([]);
   const [mounted, setMounted] = useState(false);
+  const [swapTarget, setSwapTarget] = useState<Workout | null>(null);
 
   useEffect(() => {
     setMounted(true);
     setActiveWeek(getCurrentWeek());
     setCompleted(getCompletedWorkouts());
+    setSwapped(getSwappedWorkouts());
   }, []);
 
   const workouts = generateTrainingPlan();
@@ -101,13 +105,27 @@ export default function TrainingPage() {
             <WorkoutCard
               workout={workout}
               completed={completed.some((c) => c.workoutId === workout.id)}
+              swapped={swapped.find((s) => s.workoutId === workout.id) ?? null}
               onClick={() => {
                 window.location.href = `/workout/${workout.id}`;
               }}
+              onSwap={() => setSwapTarget(workout)}
             />
           </div>
         ))}
       </div>
+
+      {swapTarget && (
+        <SwapModal
+          workout={swapTarget}
+          onClose={() => setSwapTarget(null)}
+          onSaved={() => {
+            setSwapTarget(null);
+            setCompleted(getCompletedWorkouts());
+            setSwapped(getSwappedWorkouts());
+          }}
+        />
+      )}
     </main>
   );
 }

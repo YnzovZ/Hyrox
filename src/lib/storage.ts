@@ -13,6 +13,15 @@ export interface UserProfile {
   startWeek: number;
 }
 
+export interface SwappedWorkout {
+  workoutId: string;
+  type: "run" | "strength" | "hyrox" | "other";
+  description: string;
+  distance?: string;
+  time?: string;
+  completedAt: string;
+}
+
 const STORAGE_KEYS = {
   completedWorkouts: "hyrox_completed",
   profile: "hyrox_profile",
@@ -20,6 +29,7 @@ const STORAGE_KEYS = {
   exerciseWeights: "hyrox_weights",
   exerciseProgress: "hyrox_exercise_progress",
   chosenAlternatives: "hyrox_chosen_alts",
+  swappedWorkouts: "hyrox_swapped",
 } as const;
 
 function safeGet<T>(key: string, fallback: T): T {
@@ -112,4 +122,23 @@ export function saveChosenAlternative(workoutId: string, exerciseName: string, a
     delete all[workoutId][exerciseName];
   }
   safeSet(STORAGE_KEYS.chosenAlternatives, all);
+}
+
+export function getSwappedWorkouts(): SwappedWorkout[] {
+  return safeGet<SwappedWorkout[]>(STORAGE_KEYS.swappedWorkouts, []);
+}
+
+export function getSwappedWorkout(workoutId: string): SwappedWorkout | null {
+  return getSwappedWorkouts().find((s) => s.workoutId === workoutId) ?? null;
+}
+
+export function saveSwappedWorkout(swap: SwappedWorkout): void {
+  const swaps = getSwappedWorkouts();
+  const existing = swaps.findIndex((s) => s.workoutId === swap.workoutId);
+  if (existing >= 0) {
+    swaps[existing] = swap;
+  } else {
+    swaps.push(swap);
+  }
+  safeSet(STORAGE_KEYS.swappedWorkouts, swaps);
 }
