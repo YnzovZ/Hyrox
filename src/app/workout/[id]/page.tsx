@@ -186,11 +186,11 @@ export default function WorkoutDetailPage() {
 
       {altModal && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
           onClick={() => setAltModal(null)}
         >
           <div
-            className="w-full max-w-lg animate-[slideUp_0.25s_ease-out] rounded-t-2xl bg-white px-5 pb-8 pt-5 dark:bg-zinc-900"
+            className="w-full max-w-lg animate-[fadeIn_0.2s_ease-out] rounded-2xl bg-white px-5 pb-6 pt-5 shadow-xl dark:bg-zinc-900"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
@@ -231,9 +231,9 @@ export default function WorkoutDetailPage() {
       )}
 
       <style jsx>{`
-        @keyframes slideUp {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
         }
       `}</style>
     </main>
