@@ -17,6 +17,7 @@ const STORAGE_KEYS = {
   completedWorkouts: "hyrox_completed",
   profile: "hyrox_profile",
   currentWeek: "hyrox_current_week",
+  exerciseWeights: "hyrox_weights",
 } as const;
 
 function safeGet<T>(key: string, fallback: T): T {
@@ -71,4 +72,15 @@ export function getCurrentWeek(): number {
 
 export function setCurrentWeek(week: number): void {
   safeSet(STORAGE_KEYS.currentWeek, week);
+}
+
+export function getExerciseWeight(exerciseName: string): string | null {
+  const weights = safeGet<Record<string, string>>(STORAGE_KEYS.exerciseWeights, {});
+  return weights[exerciseName] ?? null;
+}
+
+export function saveExerciseWeight(exerciseName: string, weight: string): void {
+  const weights = safeGet<Record<string, string>>(STORAGE_KEYS.exerciseWeights, {});
+  weights[exerciseName] = weight;
+  safeSet(STORAGE_KEYS.exerciseWeights, weights);
 }

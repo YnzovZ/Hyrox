@@ -1,9 +1,71 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { generateTrainingPlan, weekPhases, Workout, exerciseAlternatives, ExerciseAlternative } from "@/lib/data";
-import { isWorkoutCompleted, markWorkoutComplete } from "@/lib/storage";
+import { isWorkoutCompleted, markWorkoutComplete, getExerciseWeight, saveExerciseWeight } from "@/lib/storage";
+
+function WeightBadge({ exerciseName }: { exerciseName: string }) {
+  const [weight, setWeight] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [inputVal, setInputVal] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setWeight(getExerciseWeight(exerciseName));
+  }, [exerciseName]);
+
+  useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editing]);
+
+  function handleSave() {
+    const trimmed = inputVal.trim();
+    if (trimmed) {
+      saveExerciseWeight(exerciseName, trimmed);
+      setWeight(trimmed);
+    }
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <form
+        onSubmit={(e) => { e.preventDefault(); handleSave(); }}
+        className="mt-1.5 flex items-center gap-2"
+      >
+        <input
+          ref={inputRef}
+          type="text"
+          inputMode="decimal"
+          value={inputVal}
+          onChange={(e) => setInputVal(e.target.value)}
+          onBlur={handleSave}
+          placeholder="bv. 20kg"
+          className="w-24 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+        />
+      </form>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => { setInputVal(weight ?? ""); setEditing(true); }}
+      className="mt-1.5 inline-flex items-center gap-1 rounded-lg bg-zinc-100 px-2.5 py-1 text-sm text-zinc-600 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6.5 6.5h11v11" />
+        <path d="M3 3l4 4" />
+        <path d="M17 17l4 4" />
+        <path d="M17.5 6.5l-11 11" />
+      </svg>
+      {weight ? weight : "Gewicht invoeren"}
+    </button>
+  );
+}
 
 export default function WorkoutDetailPage() {
   const params = useParams();
@@ -54,6 +116,11 @@ export default function WorkoutDetailPage() {
     recovery: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
   };
 
+  const strengthExercises = new Set(Object.keys(exerciseAlternatives));
+  function isStrengthExercise(name: string) {
+    return strengthExercises.has(name);
+  }
+
   return (
     <main className="mx-auto max-w-lg px-4 pt-6">
       <button
@@ -102,6 +169,7 @@ export default function WorkoutDetailPage() {
         <div className="flex flex-col gap-2">
           {workout.exercises.map((exercise, i) => {
             const alts = exerciseAlternatives[exercise.name];
+            const showWeight = isStrengthExercise(exercise.name);
             return (
               <div
                 key={i}
@@ -118,13 +186,13 @@ export default function WorkoutDetailPage() {
                       {exercise.duration && <span>{exercise.duration}</span>}
                       {exercise.distance && <span>{exercise.distance}</span>}
                       {exercise.weight && <span>{exercise.weight}</span>}
-                      {exercise.rest && <span>Rust: {exercise.rest}</span>}
                     </div>
                     {exercise.notes && (
                       <p className="mt-1.5 text-sm text-amber-600 dark:text-amber-400">
                         {exercise.notes}
                       </p>
                     )}
+                    {showWeight && <WeightBadge exerciseName={exercise.name} />}
                     <div className="mt-2 flex flex-wrap gap-2">
                       {exercise.videoUrl && (
                         <a
