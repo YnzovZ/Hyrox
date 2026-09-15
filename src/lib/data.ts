@@ -190,6 +190,140 @@ const exerciseVideos: Record<string, string> = {
   "Medicine Ball Slam": "https://www.youtube.com/watch?v=jAQg20sDVpo",
 };
 
+export interface ExerciseAlternative {
+  name: string;
+  notes: string;
+  machine: boolean;
+}
+
+export const exerciseAlternatives: Record<string, ExerciseAlternative[]> = {
+  "Goblet Squat": [
+    { name: "Leg Press", notes: "Machine. Zelfde spiergroepen, minder belasting voor je rug.", machine: true },
+    { name: "Hack Squat Machine", notes: "Machine. Squat-beweging met rugondersteuning.", machine: true },
+    { name: "Dumbbell Squat", notes: "Dumbbells langs je zij, breed staan.", machine: false },
+  ],
+  "Romanian Deadlift": [
+    { name: "Leg Curl Machine", notes: "Machine. Isoleert je hamstrings.", machine: true },
+    { name: "Hyperextensie", notes: "Rug en hamstrings. Gebruik het apparaat in de gym.", machine: false },
+    { name: "Dumbbell Romanian Deadlift", notes: "Zelfde beweging, dumbbells in plaats van barbell.", machine: false },
+  ],
+  "Overhead Press": [
+    { name: "Shoulder Press Machine", notes: "Machine. Zelfde beweging, meer stabiliteit.", machine: true },
+    { name: "Dumbbell Shoulder Press", notes: "Zittend op een bankje, dumbbells omhoog drukken.", machine: false },
+    { name: "Landmine Press", notes: "Barbell in de hoek, eenzijdig drukken.", machine: false },
+  ],
+  "Bent Over Row": [
+    { name: "Seated Row Machine", notes: "Machine. Zelfde trekbeweging, ondersteund.", machine: true },
+    { name: "Single Arm Dumbbell Row", notes: "Eenhandig, knie en hand op bankje.", machine: false },
+    { name: "T-Bar Row", notes: "Barbell in de hoek, met V-grip trekken.", machine: false },
+  ],
+  "Front Squat": [
+    { name: "Leg Press", notes: "Machine. Minder belasting voor polsen en schouders.", machine: true },
+    { name: "Hack Squat Machine", notes: "Machine. Squat-patroon met rugondersteuning.", machine: true },
+    { name: "Goblet Squat", notes: "Kettlebell of dumbbell voor je borst.", machine: false },
+  ],
+  "Lat Pulldown": [
+    { name: "Assisted Pull-up Machine", notes: "Machine. Bouw toe naar volledige pull-ups.", machine: true },
+    { name: "Cable Pullover", notes: "Cable machine, isoleert je lats.", machine: true },
+    { name: "Resistance Band Pull-down", notes: "Band over een hoog punt, naar beneden trekken.", machine: false },
+  ],
+  "Trap Bar Deadlift": [
+    { name: "Leg Press", notes: "Machine. Zelfde spiergroepen, veiliger voor je rug.", machine: true },
+    { name: "Smith Machine Deadlift", notes: "Machine. Geeft een vast pad, meer stabiliteit.", machine: true },
+    { name: "Dumbbell Deadlift", notes: "Dumbbells langs je zij, zelfde beweging.", machine: false },
+  ],
+  "Cable Row": [
+    { name: "Seated Row Machine", notes: "Machine. Vaste greep, makkelijker aan te passen.", machine: true },
+    { name: "Single Arm Dumbbell Row", notes: "Eenhandig, knie op bankje.", machine: false },
+    { name: "Chest Supported Row", notes: "Liggend op een schuine bank, dumbbells trekken.", machine: false },
+  ],
+  "Walking Lunges": [
+    { name: "Leg Press (enkel been)", notes: "Machine. Een been tegelijk, zelfde spiergroepen.", machine: true },
+    { name: "Smith Machine Lunges", notes: "Machine. Lunges met extra stabiliteit.", machine: true },
+    { name: "Reverse Lunges", notes: "Stap naar achteren i.p.v. naar voren. Minder belasting voor knieen.", machine: false },
+  ],
+  "Bulgarian Split Squat": [
+    { name: "Leg Press (enkel been)", notes: "Machine. Een been tegelijk drukken.", machine: true },
+    { name: "Smith Machine Split Squat", notes: "Machine. Zelfde beweging met stabiliteit.", machine: true },
+    { name: "Reverse Lunges", notes: "Stap naar achteren, wissel per been.", machine: false },
+  ],
+  "Hip Thrust": [
+    { name: "Hip Thrust Machine", notes: "Machine. Zelfde beweging, makkelijke instelling.", machine: true },
+    { name: "Leg Curl Machine", notes: "Machine. Traint hamstrings en glutes.", machine: true },
+    { name: "Glute Bridge", notes: "Op de grond, barbell of dumbbell op je heupen.", machine: false },
+  ],
+  "Kettlebell Swings": [
+    { name: "Cable Pull Through", notes: "Cable machine. Zelfde heupextensie-beweging.", machine: true },
+    { name: "Hip Thrust Machine", notes: "Machine. Traint dezelfde spiergroepen.", machine: true },
+    { name: "Dumbbell Swings", notes: "Zelfde beweging met een dumbbell.", machine: false },
+  ],
+  "Push-ups": [
+    { name: "Chest Press Machine", notes: "Machine. Zelfde duwbeweging, instelbaar gewicht.", machine: true },
+    { name: "Dumbbell Bench Press", notes: "Liggend op een bankje, dumbbells omhoog drukken.", machine: false },
+    { name: "Incline Push-ups", notes: "Handen op een bankje, makkelijker dan op de grond.", machine: false },
+  ],
+  "Step-ups": [
+    { name: "Leg Press", notes: "Machine. Zelfde spiergroepen, minder balans nodig.", machine: true },
+    { name: "Leg Extension Machine", notes: "Machine. Isoleert je quadriceps.", machine: true },
+    { name: "Reverse Lunges", notes: "Stap naar achteren, wissel per been.", machine: false },
+  ],
+  "Dumbbell Thruster": [
+    { name: "Leg Press + Shoulder Press Machine", notes: "Machine. Splits de beweging op in twee machines.", machine: true },
+    { name: "Barbell Thruster", notes: "Zelfde beweging met een barbell.", machine: false },
+    { name: "Goblet Squat + Press", notes: "Squat met kettlebell, druk omhoog aan de top.", machine: false },
+  ],
+  "Medicine Ball Slam": [
+    { name: "Cable Woodchop", notes: "Cable machine. Vergelijkbare explosieve kernbeweging.", machine: true },
+    { name: "Battle Ropes", notes: "Touwen op en neer slaan, zelfde intensiteit.", machine: false },
+    { name: "Dumbbell Snatch", notes: "Explosief een dumbbell van de grond naar boven.", machine: false },
+  ],
+  "Wall Ball": [
+    { name: "Leg Press + Shoulder Press Machine", notes: "Machine. Splits de squat-throw op in twee bewegingen.", machine: true },
+    { name: "Dumbbell Thruster", notes: "Squat + press in een beweging met dumbbells.", machine: false },
+    { name: "Goblet Squat + Press", notes: "Kettlebell squat, druk omhoog.", machine: false },
+  ],
+  "Wall Balls": [
+    { name: "Leg Press + Shoulder Press Machine", notes: "Machine. Splits de squat-throw op in twee bewegingen.", machine: true },
+    { name: "Dumbbell Thruster", notes: "Squat + press in een beweging met dumbbells.", machine: false },
+    { name: "Goblet Squat + Press", notes: "Kettlebell squat, druk omhoog.", machine: false },
+  ],
+  "Sandbag Hold Squats": [
+    { name: "Leg Press", notes: "Machine. Minder belasting voor schouders en rug.", machine: true },
+    { name: "Hack Squat Machine", notes: "Machine. Squat met rugondersteuning.", machine: true },
+    { name: "Goblet Squat", notes: "Kettlebell of dumbbell voor je borst.", machine: false },
+  ],
+  "Sled Push simulatie (Prowler)": [
+    { name: "Leg Press (hoge reps)", notes: "Machine. Hoge herhalingen met lager gewicht.", machine: true },
+    { name: "Incline Treadmill Walk", notes: "Loopband op steile helling, stevig doorlopen.", machine: true },
+    { name: "Dumbbell Walking Lunges", notes: "Lunges met dumbbells over afstand.", machine: false },
+  ],
+  "Sled Push": [
+    { name: "Leg Press (hoge reps)", notes: "Machine. Hoge herhalingen met lager gewicht.", machine: true },
+    { name: "Incline Treadmill Walk", notes: "Loopband op steile helling, stevig doorlopen.", machine: true },
+    { name: "Dumbbell Walking Lunges", notes: "Lunges met dumbbells over afstand.", machine: false },
+  ],
+  "Sled Pull (rope)": [
+    { name: "Seated Row Machine (hoge reps)", notes: "Machine. Hoge herhalingen om dezelfde trekbeweging te trainen.", machine: true },
+    { name: "Lat Pulldown (hoge reps)", notes: "Machine. Traint dezelfde trekspieren.", machine: true },
+    { name: "Resistance Band Rows", notes: "Band om een vast punt, naar je toe trekken.", machine: false },
+  ],
+  "Sled Pull": [
+    { name: "Seated Row Machine (hoge reps)", notes: "Machine. Hoge herhalingen, zelfde trekbeweging.", machine: true },
+    { name: "Lat Pulldown (hoge reps)", notes: "Machine. Traint dezelfde trekspieren.", machine: true },
+    { name: "Resistance Band Rows", notes: "Band om een vast punt, naar je toe trekken.", machine: false },
+  ],
+  "Farmers Walk": [
+    { name: "Trap Bar Carry", notes: "Trap bar oppakken en lopen. Meer gewicht mogelijk.", machine: false },
+    { name: "Dumbbell Carry", notes: "Zware dumbbells langs je zij, lopen.", machine: false },
+    { name: "Grip Trainer + Incline Walk", notes: "Machine. Grip trainen apart, cardio op de loopband.", machine: true },
+  ],
+  "Farmers Carry": [
+    { name: "Trap Bar Carry", notes: "Trap bar oppakken en lopen. Meer gewicht mogelijk.", machine: false },
+    { name: "Dumbbell Carry", notes: "Zware dumbbells langs je zij, lopen.", machine: false },
+    { name: "Grip Trainer + Incline Walk", notes: "Machine. Grip trainen apart, cardio op de loopband.", machine: true },
+  ],
+};
+
 export function generateTrainingPlan(): Workout[] {
   const workouts: Workout[] = [];
 
