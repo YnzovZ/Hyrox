@@ -18,6 +18,7 @@ const STORAGE_KEYS = {
   profile: "hyrox_profile",
   currentWeek: "hyrox_current_week",
   exerciseWeights: "hyrox_weights",
+  exerciseProgress: "hyrox_exercise_progress",
 } as const;
 
 function safeGet<T>(key: string, fallback: T): T {
@@ -83,4 +84,15 @@ export function saveExerciseWeight(exerciseName: string, weight: string): void {
   const weights = safeGet<Record<string, string>>(STORAGE_KEYS.exerciseWeights, {});
   weights[exerciseName] = weight;
   safeSet(STORAGE_KEYS.exerciseWeights, weights);
+}
+
+export function getExerciseProgress(workoutId: string): number[] {
+  const all = safeGet<Record<string, number[]>>(STORAGE_KEYS.exerciseProgress, {});
+  return all[workoutId] ?? [];
+}
+
+export function saveExerciseProgress(workoutId: string, progress: number[]): void {
+  const all = safeGet<Record<string, number[]>>(STORAGE_KEYS.exerciseProgress, {});
+  all[workoutId] = progress;
+  safeSet(STORAGE_KEYS.exerciseProgress, all);
 }

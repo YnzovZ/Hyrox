@@ -3,7 +3,40 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { generateTrainingPlan, weekPhases, Workout, exerciseAlternatives, ExerciseAlternative } from "@/lib/data";
-import { isWorkoutCompleted, markWorkoutComplete, getExerciseWeight, saveExerciseWeight } from "@/lib/storage";
+import { isWorkoutCompleted, markWorkoutComplete, getExerciseWeight, saveExerciseWeight, getExerciseProgress, saveExerciseProgress } from "@/lib/storage";
+
+function ExerciseBadge({ index, stage, onTap }: { index: number; stage: number; onTap: () => void }) {
+  const done = stage >= 3;
+  const fillHeight = stage === 1 ? "33%" : stage === 2 ? "66%" : "0%";
+  const fillColor = stage === 1 ? "#ef4444" : stage === 2 ? "#eab308" : "transparent";
+
+  return (
+    <button
+      onClick={onTap}
+      className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full overflow-hidden transition-transform active:scale-90"
+    >
+      <div className="absolute inset-0 bg-zinc-100 dark:bg-zinc-800" />
+      {stage > 0 && stage < 3 && (
+        <div
+          className="absolute bottom-0 left-0 right-0 transition-all duration-300"
+          style={{ height: fillHeight, backgroundColor: fillColor }}
+        />
+      )}
+      {done && <div className="absolute inset-0 bg-green-500 transition-colors duration-300" />}
+      <span className="relative z-10">
+        {done ? (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+        ) : (
+          <span className={`text-sm font-semibold ${stage > 0 ? "text-white" : "text-zinc-500 dark:text-zinc-400"}`}>
+            {index + 1}
+          </span>
+        )}
+      </span>
+    </button>
+  );
+}
 
 function WeightBadge({ exerciseName }: { exerciseName: string }) {
   const [weight, setWeight] = useState<string | null>(null);
@@ -74,6 +107,7 @@ export default function WorkoutDetailPage() {
   const [completed, setCompleted] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [altModal, setAltModal] = useState<{ name: string; alts: ExerciseAlternative[] } | null>(null);
+  const [exProgress, setExProgress] = useState<number[]>([]);
 
   useEffect(() => {
     setMounted(true);
@@ -82,6 +116,8 @@ export default function WorkoutDetailPage() {
     if (found) {
       setWorkout(found);
       setCompleted(isWorkoutCompleted(found.id));
+      const saved = getExerciseProgress(found.id);
+      setExProgress(saved.length === found.exercises.length ? saved : new Array(found.exercises.length).fill(0));
     }
   }, [params.id]);
 
@@ -92,6 +128,17 @@ export default function WorkoutDetailPage() {
       completedAt: new Date().toISOString(),
     });
     setCompleted(true);
+  }
+
+  function handleExerciseTap(index: number) {
+    if (!workout || completed) return;
+    const next = [...exProgress];
+    next[index] = (next[index] ?? 0) < 3 ? (next[index] ?? 0) + 1 : 0;
+    setExProgress(next);
+    saveExerciseProgress(workout.id, next);
+    if (next.every((s) => s >= 3)) {
+      handleComplete();
+    }
   }
 
   if (!mounted || !workout) {
@@ -224,9 +271,11 @@ export default function WorkoutDetailPage() {
                       )}
                     </div>
                   </div>
-                  <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-zinc-100 text-sm font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-                    {i + 1}
-                  </span>
+                  <ExerciseBadge
+                    index={i}
+                    stage={exProgress[i] ?? 0}
+                    onTap={() => handleExerciseTap(i)}
+                  />
                 </div>
               </div>
             );
