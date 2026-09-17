@@ -121,6 +121,7 @@ export default function WorkoutCard({ workout, completed, swapped, onClick, onSw
       )}
 
       <div
+        className="rounded-xl bg-[var(--background)]"
         onTouchStart={canSwipe ? handleTouchStart : undefined}
         onTouchMove={canSwipe ? handleTouchMove : undefined}
         onTouchEnd={canSwipe ? handleTouchEnd : undefined}
