@@ -99,27 +99,31 @@ export default function WorkoutCard({ workout, completed, swapped, onClick, onSw
     onClick?.();
   }
 
+  const canSwipe = !completed && !swapped;
+
   return (
     <div className="relative overflow-hidden rounded-xl">
-      <div className="absolute right-0 top-0 bottom-0 flex w-[100px] items-center justify-center bg-amber-500">
-        <button
-          onClick={handleSwapClick}
-          className="flex flex-col items-center gap-1 text-white"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M16 3h5v5" />
-            <path d="M8 3H3v5" />
-            <path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3" />
-            <path d="m15 9 6-6" />
-          </svg>
-          <span className="text-xs font-semibold">Verander</span>
-        </button>
-      </div>
+      {canSwipe && (
+        <div className="absolute right-0 top-0 bottom-0 flex w-[100px] items-center justify-center bg-amber-500 rounded-r-xl">
+          <button
+            onClick={handleSwapClick}
+            className="flex flex-col items-center gap-1 text-white"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 3h5v5" />
+              <path d="M8 3H3v5" />
+              <path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3" />
+              <path d="m15 9 6-6" />
+            </svg>
+            <span className="text-xs font-semibold">Verander</span>
+          </button>
+        </div>
+      )}
 
       <div
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
+        onTouchStart={canSwipe ? handleTouchStart : undefined}
+        onTouchMove={canSwipe ? handleTouchMove : undefined}
+        onTouchEnd={canSwipe ? handleTouchEnd : undefined}
         style={{ transform: `translateX(${offsetX}px)`, transition: dragging.current ? "none" : "transform 0.2s ease-out" }}
       >
         <button

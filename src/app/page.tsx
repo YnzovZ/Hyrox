@@ -3,23 +3,48 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { generateTrainingPlan, weekPhases, Workout } from "@/lib/data";
-import { getCurrentWeek, getCompletedWorkouts, CompletedWorkout, getSwappedWorkouts, SwappedWorkout } from "@/lib/storage";
+import { getCurrentWeek, getCompletedWorkouts, CompletedWorkout, getSwappedWorkouts, SwappedWorkout, getCustomWorkoutsForWeek, CustomWorkout } from "@/lib/storage";
 import WorkoutCard from "@/components/WorkoutCard";
 import SwapModal from "@/components/SwapModal";
+import AddWorkoutModal from "@/components/AddWorkoutModal";
+
+const typeColors: Record<string, string> = {
+  run: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  strength: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  hyrox: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  other: "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300",
+};
+
+const typeLabels: Record<string, string> = {
+  run: "Run",
+  strength: "Kracht",
+  hyrox: "Hyrox",
+  other: "Anders",
+};
 
 export default function Home() {
   const [currentWeek, setCurrentWeek] = useState(1);
   const [completed, setCompleted] = useState<CompletedWorkout[]>([]);
   const [swapped, setSwapped] = useState<SwappedWorkout[]>([]);
+  const [customWorkouts, setCustomWorkouts] = useState<CustomWorkout[]>([]);
   const [mounted, setMounted] = useState(false);
   const [swapTarget, setSwapTarget] = useState<Workout | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    setCurrentWeek(getCurrentWeek());
+    const week = getCurrentWeek();
+    setCurrentWeek(week);
     setCompleted(getCompletedWorkouts());
     setSwapped(getSwappedWorkouts());
+    setCustomWorkouts(getCustomWorkoutsForWeek(week));
   }, []);
+
+  function refreshState() {
+    setCompleted(getCompletedWorkouts());
+    setSwapped(getSwappedWorkouts());
+    setCustomWorkouts(getCustomWorkoutsForWeek(currentWeek));
+  }
 
   const workouts = generateTrainingPlan();
   const weekWorkouts = workouts.filter((w) => w.week === currentWeek);
@@ -27,7 +52,8 @@ export default function Home() {
   const completedCount = completed.length;
   const weekCompleted = weekWorkouts.filter((w) =>
     completed.some((c) => c.workoutId === w.id)
-  ).length;
+  ).length + customWorkouts.length;
+  const weekTotal = weekWorkouts.length + customWorkouts.length;
 
   const progress = totalWorkouts > 0 ? (completedCount / totalWorkouts) * 100 : 0;
 
@@ -40,7 +66,7 @@ export default function Home() {
   }
 
   return (
-    <main className="mx-auto max-w-lg px-4 pt-8">
+    <main className="mx-auto max-w-lg px-4 pt-8 pb-12">
       <header className="mb-8">
         <div className="mb-1 flex items-center gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500 text-lg font-bold text-white">
@@ -62,7 +88,7 @@ export default function Home() {
             <h2 className="text-xl font-bold">{weekPhases[currentWeek - 1]}</h2>
           </div>
           <div className="text-right">
-            <p className="text-3xl font-bold">{weekCompleted}/{weekWorkouts.length}</p>
+            <p className="text-3xl font-bold">{weekCompleted}/{weekTotal}</p>
             <p className="text-sm text-amber-100">workouts</p>
           </div>
         </div>
@@ -102,7 +128,44 @@ export default function Home() {
               onSwap={() => setSwapTarget(workout)}
             />
           ))}
+
+          {customWorkouts.map((cw) => (
+            <div key={cw.id} className="rounded-xl border border-green-200 bg-green-50/50 p-4 dark:border-green-900 dark:bg-green-950/20">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1.5 flex items-center gap-2">
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-sm font-medium ${typeColors[cw.type]}`}>
+                      {typeLabels[cw.type]}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                    {cw.description}
+                  </h3>
+                  <div className="mt-0.5 flex gap-3 text-sm text-zinc-500 dark:text-zinc-400">
+                    {cw.distance && <span>{cw.distance}</span>}
+                    {cw.time && <span>{cw.time}</span>}
+                  </div>
+                </div>
+                <span className="text-green-600 dark:text-green-400">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
+
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-white py-3 text-base font-medium text-zinc-500 transition-all hover:border-amber-400 hover:text-amber-600 active:scale-[0.98] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-amber-600 dark:hover:text-amber-400"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 5v14" />
+            <path d="M5 12h14" />
+          </svg>
+          Training toevoegen
+        </button>
       </section>
 
       <section className="mb-6">
@@ -139,8 +202,18 @@ export default function Home() {
           onClose={() => setSwapTarget(null)}
           onSaved={() => {
             setSwapTarget(null);
-            setCompleted(getCompletedWorkouts());
-            setSwapped(getSwappedWorkouts());
+            refreshState();
+          }}
+        />
+      )}
+
+      {showAddModal && (
+        <AddWorkoutModal
+          week={currentWeek}
+          onClose={() => setShowAddModal(false)}
+          onSaved={() => {
+            setShowAddModal(false);
+            refreshState();
           }}
         />
       )}

@@ -22,6 +22,16 @@ export interface SwappedWorkout {
   completedAt: string;
 }
 
+export interface CustomWorkout {
+  id: string;
+  week: number;
+  type: "run" | "strength" | "hyrox" | "other";
+  description: string;
+  distance?: string;
+  time?: string;
+  completedAt: string;
+}
+
 const STORAGE_KEYS = {
   completedWorkouts: "hyrox_completed",
   profile: "hyrox_profile",
@@ -30,6 +40,7 @@ const STORAGE_KEYS = {
   exerciseProgress: "hyrox_exercise_progress",
   chosenAlternatives: "hyrox_chosen_alts",
   swappedWorkouts: "hyrox_swapped",
+  customWorkouts: "hyrox_custom",
 } as const;
 
 function safeGet<T>(key: string, fallback: T): T {
@@ -141,4 +152,23 @@ export function saveSwappedWorkout(swap: SwappedWorkout): void {
     swaps.push(swap);
   }
   safeSet(STORAGE_KEYS.swappedWorkouts, swaps);
+}
+
+export function getCustomWorkouts(): CustomWorkout[] {
+  return safeGet<CustomWorkout[]>(STORAGE_KEYS.customWorkouts, []);
+}
+
+export function getCustomWorkoutsForWeek(week: number): CustomWorkout[] {
+  return getCustomWorkouts().filter((w) => w.week === week);
+}
+
+export function saveCustomWorkout(workout: CustomWorkout): void {
+  const all = getCustomWorkouts();
+  all.push(workout);
+  safeSet(STORAGE_KEYS.customWorkouts, all);
+}
+
+export function deleteCustomWorkout(id: string): void {
+  const all = getCustomWorkouts().filter((w) => w.id !== id);
+  safeSet(STORAGE_KEYS.customWorkouts, all);
 }
