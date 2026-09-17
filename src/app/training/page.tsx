@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { generateTrainingPlan, weekPhases, dayNames, Workout } from "@/lib/data";
-import { getCurrentWeek, setCurrentWeek as saveCurrentWeek, getCompletedWorkouts, CompletedWorkout, getSwappedWorkouts, SwappedWorkout, getCustomWorkoutsForWeek, CustomWorkout } from "@/lib/storage";
+import { getCurrentWeek, setCurrentWeek as saveCurrentWeek, getCompletedWorkouts, CompletedWorkout, getSwappedWorkouts, SwappedWorkout, getCustomWorkoutsForWeek, CustomWorkout, removeSwappedWorkout, removeCompletedWorkout, removeExerciseProgress } from "@/lib/storage";
 import WorkoutCard from "@/components/WorkoutCard";
 import SwapModal from "@/components/SwapModal";
 import AddWorkoutModal from "@/components/AddWorkoutModal";
+import ConfirmModal from "@/components/ConfirmModal";
 
 const typeColors: Record<string, string> = {
   run: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
@@ -28,6 +29,7 @@ export default function TrainingPage() {
   const [customWorkouts, setCustomWorkouts] = useState<CustomWorkout[]>([]);
   const [mounted, setMounted] = useState(false);
   const [swapTarget, setSwapTarget] = useState<Workout | null>(null);
+  const [undoTarget, setUndoTarget] = useState<Workout | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
@@ -51,6 +53,24 @@ export default function TrainingPage() {
     setCompleted(getCompletedWorkouts());
     setSwapped(getSwappedWorkouts());
     setCustomWorkouts(getCustomWorkoutsForWeek(activeWeek));
+  }
+
+  function handleSwapAction(workout: Workout) {
+    const isSwapped = swapped.some((s) => s.workoutId === workout.id);
+    if (isSwapped) {
+      setUndoTarget(workout);
+    } else {
+      setSwapTarget(workout);
+    }
+  }
+
+  function handleUndoSwap() {
+    if (!undoTarget) return;
+    removeSwappedWorkout(undoTarget.id);
+    removeCompletedWorkout(undoTarget.id);
+    removeExerciseProgress(undoTarget.id);
+    setUndoTarget(null);
+    refreshState();
   }
 
   const weekWorkouts = workouts.filter((w) => w.week === activeWeek);
@@ -136,7 +156,7 @@ export default function TrainingPage() {
               onClick={() => {
                 window.location.href = `/workout/${workout.id}`;
               }}
-              onSwap={() => setSwapTarget(workout)}
+              onSwap={() => handleSwapAction(workout)}
             />
           </div>
         ))}
@@ -192,6 +212,17 @@ export default function TrainingPage() {
             setSwapTarget(null);
             refreshState();
           }}
+        />
+      )}
+
+      {undoTarget && (
+        <ConfirmModal
+          title="Verandering ongedaan maken?"
+          message="Training herstellen naar de oorspronkelijke planning?"
+          confirmLabel="Ja"
+          cancelLabel="Annuleer"
+          onConfirm={handleUndoSwap}
+          onCancel={() => setUndoTarget(null)}
         />
       )}
 

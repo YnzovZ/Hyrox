@@ -81,6 +81,17 @@ export function isWorkoutCompleted(workoutId: string): boolean {
   return getCompletedWorkouts().some((w) => w.workoutId === workoutId);
 }
 
+export function removeCompletedWorkout(workoutId: string): void {
+  const completed = getCompletedWorkouts().filter((w) => w.workoutId !== workoutId);
+  safeSet(STORAGE_KEYS.completedWorkouts, completed);
+}
+
+export function removeExerciseProgress(workoutId: string): void {
+  const all = safeGet<Record<string, number[]>>(STORAGE_KEYS.exerciseProgress, {});
+  delete all[workoutId];
+  safeSet(STORAGE_KEYS.exerciseProgress, all);
+}
+
 export function getProfile(): UserProfile | null {
   return safeGet<UserProfile | null>(STORAGE_KEYS.profile, null);
 }
@@ -141,6 +152,11 @@ export function getSwappedWorkouts(): SwappedWorkout[] {
 
 export function getSwappedWorkout(workoutId: string): SwappedWorkout | null {
   return getSwappedWorkouts().find((s) => s.workoutId === workoutId) ?? null;
+}
+
+export function removeSwappedWorkout(workoutId: string): void {
+  const swaps = getSwappedWorkouts().filter((s) => s.workoutId !== workoutId);
+  safeSet(STORAGE_KEYS.swappedWorkouts, swaps);
 }
 
 export function saveSwappedWorkout(swap: SwappedWorkout): void {

@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { generateTrainingPlan, weekPhases, Workout, exerciseAlternatives, ExerciseAlternative } from "@/lib/data";
-import { isWorkoutCompleted, markWorkoutComplete, getExerciseWeight, saveExerciseWeight, getExerciseProgress, saveExerciseProgress, getChosenAlternative, saveChosenAlternative } from "@/lib/storage";
+import { isWorkoutCompleted, markWorkoutComplete, removeCompletedWorkout, removeExerciseProgress, getExerciseWeight, saveExerciseWeight, getExerciseProgress, saveExerciseProgress, getChosenAlternative, saveChosenAlternative } from "@/lib/storage";
 
 function ExerciseBadge({ label, stage, onTap }: { label: string; stage: number; onTap: () => void }) {
   const done = stage >= 3;
@@ -135,6 +135,14 @@ export default function WorkoutDetailPage() {
       completedAt: new Date().toISOString(),
     });
     setCompleted(true);
+  }
+
+  function handleUndoComplete() {
+    if (!workout) return;
+    removeCompletedWorkout(workout.id);
+    removeExerciseProgress(workout.id);
+    setCompleted(false);
+    setExProgress(new Array(workout.exercises.length).fill(0));
   }
 
   function handleExerciseTap(index: number) {
@@ -298,12 +306,15 @@ export default function WorkoutDetailPage() {
 
       <div className="pb-4">
         {completed ? (
-          <div className="flex items-center justify-center gap-2 rounded-xl bg-green-100 py-3.5 text-base font-semibold text-green-800 dark:bg-green-900/30 dark:text-green-300">
+          <button
+            onClick={handleUndoComplete}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-100 py-3.5 text-base font-semibold text-green-800 transition-all active:scale-[0.98] dark:bg-green-900/30 dark:text-green-300"
+          >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 6L9 17l-5-5" />
             </svg>
             Voltooid
-          </div>
+          </button>
         ) : (
           <button
             onClick={handleComplete}

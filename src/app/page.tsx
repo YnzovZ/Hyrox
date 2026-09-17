@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { generateTrainingPlan, weekPhases, Workout } from "@/lib/data";
-import { getCurrentWeek, getCompletedWorkouts, CompletedWorkout, getSwappedWorkouts, SwappedWorkout, getCustomWorkoutsForWeek, CustomWorkout } from "@/lib/storage";
+import { getCurrentWeek, getCompletedWorkouts, CompletedWorkout, getSwappedWorkouts, SwappedWorkout, getCustomWorkoutsForWeek, CustomWorkout, removeSwappedWorkout, removeCompletedWorkout, removeExerciseProgress } from "@/lib/storage";
 import WorkoutCard from "@/components/WorkoutCard";
 import SwapModal from "@/components/SwapModal";
 import AddWorkoutModal from "@/components/AddWorkoutModal";
+import ConfirmModal from "@/components/ConfirmModal";
 
 const typeColors: Record<string, string> = {
   run: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
@@ -29,6 +30,7 @@ export default function Home() {
   const [customWorkouts, setCustomWorkouts] = useState<CustomWorkout[]>([]);
   const [mounted, setMounted] = useState(false);
   const [swapTarget, setSwapTarget] = useState<Workout | null>(null);
+  const [undoTarget, setUndoTarget] = useState<Workout | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
@@ -44,6 +46,24 @@ export default function Home() {
     setCompleted(getCompletedWorkouts());
     setSwapped(getSwappedWorkouts());
     setCustomWorkouts(getCustomWorkoutsForWeek(currentWeek));
+  }
+
+  function handleSwapAction(workout: Workout) {
+    const isSwapped = swapped.some((s) => s.workoutId === workout.id);
+    if (isSwapped) {
+      setUndoTarget(workout);
+    } else {
+      setSwapTarget(workout);
+    }
+  }
+
+  function handleUndoSwap() {
+    if (!undoTarget) return;
+    removeSwappedWorkout(undoTarget.id);
+    removeCompletedWorkout(undoTarget.id);
+    removeExerciseProgress(undoTarget.id);
+    setUndoTarget(null);
+    refreshState();
   }
 
   const workouts = generateTrainingPlan();
@@ -125,7 +145,7 @@ export default function Home() {
               onClick={() => {
                 window.location.href = `/workout/${workout.id}`;
               }}
-              onSwap={() => setSwapTarget(workout)}
+              onSwap={() => handleSwapAction(workout)}
             />
           ))}
 
@@ -204,6 +224,17 @@ export default function Home() {
             setSwapTarget(null);
             refreshState();
           }}
+        />
+      )}
+
+      {undoTarget && (
+        <ConfirmModal
+          title="Verandering ongedaan maken?"
+          message="Training herstellen naar de oorspronkelijke planning?"
+          confirmLabel="Ja"
+          cancelLabel="Annuleer"
+          onConfirm={handleUndoSwap}
+          onCancel={() => setUndoTarget(null)}
         />
       )}
 
