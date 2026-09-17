@@ -31,6 +31,7 @@ export default function TrainingPage() {
   const [swapTarget, setSwapTarget] = useState<Workout | null>(null);
   const [undoTarget, setUndoTarget] = useState<Workout | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editTarget, setEditTarget] = useState<CustomWorkout | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -166,7 +167,10 @@ export default function TrainingPage() {
             <div className="mb-1 text-sm font-medium text-zinc-400 dark:text-zinc-500">
               Extra training
             </div>
-            <div className="rounded-xl border border-green-200 bg-green-50/50 p-4 dark:border-green-900 dark:bg-green-950/20">
+            <button
+              onClick={() => setEditTarget(cw)}
+              className="w-full rounded-xl border border-green-200 bg-green-50/50 p-4 text-left transition-colors hover:border-green-300 active:scale-[0.98] dark:border-green-900 dark:bg-green-950/20 dark:hover:border-green-800"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="mb-1.5 flex items-center gap-2">
@@ -188,7 +192,7 @@ export default function TrainingPage() {
                   </svg>
                 </span>
               </div>
-            </div>
+            </button>
           </div>
         ))}
       </div>
@@ -226,12 +230,17 @@ export default function TrainingPage() {
         />
       )}
 
-      {showAddModal && (
+      {(showAddModal || editTarget) && (
         <AddWorkoutModal
           week={activeWeek}
-          onClose={() => setShowAddModal(false)}
+          existing={editTarget}
+          onClose={() => {
+            setShowAddModal(false);
+            setEditTarget(null);
+          }}
           onSaved={() => {
             setShowAddModal(false);
+            setEditTarget(null);
             refreshState();
           }}
         />

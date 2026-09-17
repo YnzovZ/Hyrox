@@ -180,7 +180,12 @@ export function getCustomWorkoutsForWeek(week: number): CustomWorkout[] {
 
 export function saveCustomWorkout(workout: CustomWorkout): void {
   const all = getCustomWorkouts();
-  all.push(workout);
+  const existing = all.findIndex((w) => w.id === workout.id);
+  if (existing >= 0) {
+    all[existing] = workout;
+  } else {
+    all.push(workout);
+  }
   safeSet(STORAGE_KEYS.customWorkouts, all);
 }
 

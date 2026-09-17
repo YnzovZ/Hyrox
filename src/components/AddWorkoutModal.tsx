@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CustomWorkout, saveCustomWorkout } from "@/lib/storage";
+import { CustomWorkout, saveCustomWorkout, deleteCustomWorkout } from "@/lib/storage";
 
 const workoutTypes = [
   { value: "run" as const, label: "Run", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
@@ -12,28 +12,37 @@ const workoutTypes = [
 
 interface AddWorkoutModalProps {
   week: number;
+  existing?: CustomWorkout | null;
   onClose: () => void;
   onSaved: () => void;
 }
 
-export default function AddWorkoutModal({ week, onClose, onSaved }: AddWorkoutModalProps) {
-  const [type, setType] = useState<CustomWorkout["type"]>("run");
-  const [description, setDescription] = useState("");
-  const [distance, setDistance] = useState("");
-  const [time, setTime] = useState("");
+export default function AddWorkoutModal({ week, existing, onClose, onSaved }: AddWorkoutModalProps) {
+  const isEditing = !!existing;
+  const [type, setType] = useState<CustomWorkout["type"]>(existing?.type ?? "run");
+  const [description, setDescription] = useState(existing?.description ?? "");
+  const [distance, setDistance] = useState(existing?.distance ?? "");
+  const [time, setTime] = useState(existing?.time ?? "");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   function handleSave() {
     if (!description.trim()) return;
     const workout: CustomWorkout = {
-      id: `custom_${Date.now()}`,
+      id: existing?.id ?? `custom_${Date.now()}`,
       week,
       type,
       description: description.trim(),
       distance: distance.trim() || undefined,
       time: time.trim() || undefined,
-      completedAt: new Date().toISOString(),
+      completedAt: existing?.completedAt ?? new Date().toISOString(),
     };
     saveCustomWorkout(workout);
+    onSaved();
+  }
+
+  function handleDelete() {
+    if (!existing) return;
+    deleteCustomWorkout(existing.id);
     onSaved();
   }
 
@@ -48,7 +57,9 @@ export default function AddWorkoutModal({ week, onClose, onSaved }: AddWorkoutMo
       >
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Training toevoegen</h3>
+            <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+              {isEditing ? "Training bewerken" : "Training toevoegen"}
+            </h3>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">Week {week}</p>
           </div>
           <button
@@ -130,8 +141,37 @@ export default function AddWorkoutModal({ week, onClose, onSaved }: AddWorkoutMo
           disabled={!description.trim()}
           className="mt-2 w-full rounded-xl bg-amber-500 py-3 text-base font-semibold text-white shadow-lg transition-all hover:bg-amber-600 active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100"
         >
-          Toevoegen
+          {isEditing ? "Opslaan" : "Toevoegen"}
         </button>
+
+        {isEditing && !showDeleteConfirm && (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="mt-2 w-full rounded-xl py-2.5 text-base font-medium text-red-500 transition-all hover:bg-red-50 active:scale-[0.98] dark:text-red-400 dark:hover:bg-red-950/20"
+          >
+            Verwijderen
+          </button>
+        )}
+
+        {showDeleteConfirm && (
+          <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950/20">
+            <p className="mb-2 text-sm text-red-700 dark:text-red-400">Training verwijderen?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 rounded-lg border border-zinc-300 py-2 text-sm font-medium text-zinc-700 dark:border-zinc-700 dark:text-zinc-300"
+              >
+                Annuleer
+              </button>
+              <button
+                onClick={handleDelete}
+                className="flex-1 rounded-lg bg-red-500 py-2 text-sm font-semibold text-white"
+              >
+                Verwijderen
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <style jsx>{`
