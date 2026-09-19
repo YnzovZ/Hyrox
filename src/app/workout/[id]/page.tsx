@@ -184,6 +184,11 @@ export default function WorkoutDetailPage() {
     return strengthExercises.has(name);
   }
 
+  function getYouTubeThumb(url: string): string | null {
+    const m = url.match(/(?:v=|\/)([\w-]{11})/);
+    return m ? `https://img.youtube.com/vi/${m[1]}/mqdefault.jpg` : null;
+  }
+
   return (
     <main className="mx-auto max-w-lg px-4 pt-6">
       <button
@@ -233,12 +238,13 @@ export default function WorkoutDetailPage() {
           {workout.exercises.map((exercise, i) => {
             const alts = exerciseAlternatives[exercise.name];
             const showWeight = isStrengthExercise(exercise.name);
+            const thumb = exercise.videoUrl ? getYouTubeThumb(exercise.videoUrl) : null;
             return (
               <div
                 key={i}
                 className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
               >
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start gap-2">
                   <div className="min-w-0 flex-1">
                     <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                       {exercise.name}
@@ -273,7 +279,7 @@ export default function WorkoutDetailPage() {
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
                           </svg>
-                          Bekijk video
+                          Video
                         </a>
                       )}
                       {alts && (
@@ -287,16 +293,26 @@ export default function WorkoutDetailPage() {
                             <path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3" />
                             <path d="m15 9 6-6" />
                           </svg>
-                          Alternatieven
+                          Alts
                         </button>
                       )}
                     </div>
                   </div>
-                  <ExerciseBadge
-                    label={exercise.isBonus ? "B" : String(i + 1)}
-                    stage={exProgress[i] ?? 0}
-                    onTap={() => handleExerciseTap(i)}
-                  />
+                  <div className="flex flex-col items-center gap-2">
+                    {thumb && (
+                      <img
+                        src={thumb}
+                        alt={exercise.name}
+                        loading="lazy"
+                        className="h-14 w-14 rounded-lg object-cover"
+                      />
+                    )}
+                    <ExerciseBadge
+                      label={exercise.isBonus ? "B" : String(i + 1)}
+                      stage={exProgress[i] ?? 0}
+                      onTap={() => handleExerciseTap(i)}
+                    />
+                  </div>
                 </div>
               </div>
             );
