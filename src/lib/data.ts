@@ -189,6 +189,7 @@ const exerciseVideos: Record<string, string> = {
   "Dumbbell Thruster": "https://www.youtube.com/watch?v=UjPZ4lCMsZo",
   "Battle Ropes": "https://www.youtube.com/watch?v=eibq9HsCOKY",
   "Medicine Ball Slam": "https://www.youtube.com/watch?v=jAQg20sDVpo",
+  "Seated Dumbbell Press": "https://www.youtube.com/watch?v=qEwKCR5JCog",
   "Back Squat": "https://www.youtube.com/watch?v=ultWZbUMPL8",
   "Calf Raise Excentrisch": "https://www.youtube.com/watch?v=YMa3bQzUvZ8",
 };
@@ -217,8 +218,13 @@ export const exerciseAlternatives: Record<string, ExerciseAlternative[]> = {
   ],
   "Overhead Press": [
     { name: "Shoulder Press Machine", notes: "Machine. Zelfde beweging, meer stabiliteit.", machine: true },
-    { name: "Dumbbell Shoulder Press", notes: "Zittend op een bankje, dumbbells omhoog drukken.", machine: false },
+    { name: "Seated Dumbbell Press", notes: "Zittend op een bankje (60 graden), dumbbells omhoog drukken.", machine: false },
     { name: "Landmine Press", notes: "Barbell in de hoek, eenzijdig drukken.", machine: false },
+  ],
+  "Seated Dumbbell Press": [
+    { name: "Shoulder Press Machine", notes: "Machine. Zelfde beweging, meer stabiliteit.", machine: true },
+    { name: "Landmine Press", notes: "Barbell in de hoek, eenzijdig drukken.", machine: false },
+    { name: "Lateral Raise", notes: "Dumbbells zijwaarts heffen. Lichter alternatief.", machine: false },
   ],
   "Bent Over Row": [
     { name: "Seated Row Machine", notes: "Machine. Zelfde trekbeweging, ondersteund.", machine: true },
@@ -375,7 +381,7 @@ export function generateTrainingPlan(): Workout[] {
           exercises: [
             { name: "Goblet Squat", sets: 3, reps: "10", rest: "60 sec" },
             { name: "Romanian Deadlift", sets: 3, reps: "10", rest: "60 sec" },
-            { name: "Overhead Press", sets: 3, reps: "10", rest: "60 sec" },
+            { name: "Seated Dumbbell Press", sets: 3, reps: "10", rest: "60 sec", notes: "Bankje op 60 graden" },
             { name: "Bent Over Row", sets: 3, reps: "10", rest: "60 sec" },
           ],
         },
@@ -424,7 +430,7 @@ export function generateTrainingPlan(): Workout[] {
           exercises: [
             { name: "Goblet Squat", sets: 3, reps: "10", rest: "60 sec" },
             { name: "Romanian Deadlift", sets: 3, reps: "10", rest: "60 sec" },
-            { name: "Overhead Press", sets: 3, reps: "10", rest: "60 sec" },
+            { name: "Seated Dumbbell Press", sets: 3, reps: "10", rest: "60 sec", notes: "Bankje op 60 graden" },
             { name: "Bent Over Row", sets: 3, reps: "10", rest: "60 sec" },
             { name: "Farmers Walk", distance: "4x 30m", rest: "60 sec" },
           ],
@@ -474,7 +480,7 @@ export function generateTrainingPlan(): Workout[] {
           exercises: [
             { name: "Back Squat", sets: 3, reps: "8", rest: "90 sec", notes: "Licht gewicht, techniek eerst" },
             { name: "Romanian Deadlift", sets: 3, reps: "10", rest: "60 sec" },
-            { name: "Overhead Press", sets: 3, reps: "10", rest: "60 sec" },
+            { name: "Seated Dumbbell Press", sets: 3, reps: "10", rest: "60 sec", notes: "Bankje op 60 graden" },
             { name: "Lat Pulldown", sets: 3, reps: "10", rest: "60 sec" },
             { name: "Farmers Walk", distance: "4x 40m", rest: "60 sec" },
           ],
@@ -793,7 +799,7 @@ export function generateTrainingPlan(): Workout[] {
             { name: "Back Squat", sets: 3, reps: "10", rest: "90 sec" },
             { name: "Hip Thrust", sets: 3, reps: "12", rest: "60 sec" },
             { name: "Cable Row", sets: 3, reps: "12", rest: "60 sec" },
-            { name: "Overhead Press", sets: 3, reps: "10", rest: "60 sec" },
+            { name: "Seated Dumbbell Press", sets: 3, reps: "10", rest: "60 sec", notes: "Bankje op 60 graden" },
             { name: "Farmers Walk", distance: "4x 40m", rest: "60 sec" },
           ],
         },
