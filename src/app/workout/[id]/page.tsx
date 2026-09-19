@@ -271,6 +271,7 @@ export default function WorkoutDetailPage() {
                       {exercise.sets && <span>{exercise.sets} sets</span>}
                       {exercise.reps && <span>{exercise.reps} reps</span>}
                       {exercise.duration && <span>{exercise.duration}</span>}
+                      {exercise.rest && <span>rust: {exercise.rest}</span>}
                       {exercise.distance && <span>{exercise.distance}</span>}
                       {exercise.weight && <span>{exercise.weight}</span>}
                       {showWeight && <WeightBadge exerciseName={exercise.name} />}
