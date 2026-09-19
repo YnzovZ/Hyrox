@@ -5,35 +5,49 @@ import { useParams, useRouter } from "next/navigation";
 import { generateTrainingPlan, weekPhases, Workout, exerciseAlternatives, ExerciseAlternative } from "@/lib/data";
 import { isWorkoutCompleted, markWorkoutComplete, removeCompletedWorkout, removeExerciseProgress, getExerciseWeight, saveExerciseWeight, getExerciseProgress, saveExerciseProgress, getChosenAlternative, saveChosenAlternative } from "@/lib/storage";
 
-function ExerciseBadge({ label, stage, onTap }: { label: string; stage: number; onTap: () => void }) {
+function ProgressOverlay({ stage, onTap, hasThumb }: { stage: number; onTap: () => void; hasThumb: boolean }) {
   const done = stage >= 3;
-  const fillHeight = stage === 1 ? "33%" : stage === 2 ? "66%" : "0%";
-  const fillColor = stage === 1 ? "#ef4444" : stage === 2 ? "#eab308" : "transparent";
 
-  return (
-    <button
-      onClick={onTap}
-      className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full overflow-hidden transition-transform active:scale-90"
-    >
-      <div className="absolute inset-0 bg-zinc-100 dark:bg-zinc-800" />
-      {stage > 0 && stage < 3 && (
-        <div
-          className="absolute bottom-0 left-0 right-0 transition-all duration-300"
-          style={{ height: fillHeight, backgroundColor: fillColor }}
-        />
-      )}
-      {done && <div className="absolute inset-0 bg-green-500 transition-colors duration-300" />}
-      <span className="relative z-10">
-        {done ? (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+  if (!hasThumb) {
+    const fillHeight = stage === 1 ? "33%" : stage === 2 ? "66%" : "0%";
+    const fillColor = stage === 1 ? "#ef4444" : stage === 2 ? "#eab308" : "transparent";
+    return (
+      <button
+        onClick={onTap}
+        className="relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full overflow-hidden transition-transform active:scale-90"
+      >
+        <div className="absolute inset-0 bg-zinc-100 dark:bg-zinc-800" />
+        {stage > 0 && stage < 3 && (
+          <div className="absolute bottom-0 left-0 right-0 transition-all duration-300" style={{ height: fillHeight, backgroundColor: fillColor }} />
+        )}
+        {done && <div className="absolute inset-0 bg-green-500 transition-colors duration-300" />}
+        {done && (
+          <svg className="relative z-10" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 6L9 17l-5-5" />
           </svg>
-        ) : (
-          <span className={`text-sm font-semibold ${stage > 0 ? "text-white" : "text-zinc-500 dark:text-zinc-400"}`}>
-            {label}
-          </span>
         )}
-      </span>
+      </button>
+    );
+  }
+
+  return (
+    <button onClick={onTap} className="absolute inset-0 z-10 transition-transform active:scale-95">
+      {stage > 0 && stage < 3 && (
+        <div
+          className="absolute bottom-0 left-0 right-0 rounded-b-lg transition-all duration-300"
+          style={{
+            height: stage === 1 ? "33%" : "66%",
+            backgroundColor: stage === 1 ? "rgba(239,68,68,0.5)" : "rgba(234,179,8,0.5)",
+          }}
+        />
+      )}
+      {done && (
+        <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-green-500/60">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+        </div>
+      )}
     </button>
   );
 }
@@ -242,9 +256,13 @@ export default function WorkoutDetailPage() {
             return (
               <div
                 key={i}
-                className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
+                className={`rounded-xl border p-4 ${
+                  exercise.isBonus
+                    ? "border-zinc-100 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50"
+                    : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
+                }`}
               >
-                <div className="flex items-start gap-2">
+                <div className="flex items-start gap-3">
                   <div className="min-w-0 flex-1">
                     <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                       {exercise.name}
@@ -298,21 +316,27 @@ export default function WorkoutDetailPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex flex-col items-center gap-2">
-                    {thumb && (
+                  {thumb ? (
+                    <div className="relative flex-shrink-0 overflow-hidden rounded-lg w-24 h-24">
                       <img
                         src={thumb}
                         alt={exercise.name}
                         loading="lazy"
-                        className="h-14 w-14 rounded-lg object-cover"
+                        className="h-full w-full object-cover"
                       />
-                    )}
-                    <ExerciseBadge
-                      label={exercise.isBonus ? "B" : String(i + 1)}
+                      <ProgressOverlay
+                        stage={exProgress[i] ?? 0}
+                        onTap={() => handleExerciseTap(i)}
+                        hasThumb
+                      />
+                    </div>
+                  ) : (
+                    <ProgressOverlay
                       stage={exProgress[i] ?? 0}
                       onTap={() => handleExerciseTap(i)}
+                      hasThumb={false}
                     />
-                  </div>
+                  )}
                 </div>
               </div>
             );
