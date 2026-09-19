@@ -360,15 +360,15 @@ export function generateTrainingPlan(): Workout[] {
       days: [
         {
           day: 2,
-          title: "Easy Run + Core",
+          title: "Easy Run",
           type: "run",
           difficulty: "easy",
-          duration: "40 min",
-          description: "Start rustig. Bouw je aerobe basis op met een ontspannen duurloop.",
+          duration: "30 min",
+          description: "Rustig beginnen. Bouw je aerobe basis op met een ontspannen duurloop.",
           exercises: [
-            { name: "Easy Run", duration: "30 min", notes: "Praattempo, je moet kunnen praten" },
-            { name: "Plank", sets: 3, duration: "30 sec", rest: "30 sec" },
-            { name: "Dead Bug", sets: 3, reps: "8 per kant", rest: "30 sec" },
+            { name: "Warming-up", duration: "5 min", notes: "Rustig inlopen" },
+            { name: "Easy Run", duration: "20 min", notes: "Gemak, 6:30/km. Je moet kunnen praten." },
+            { name: "Cooling down", duration: "5 min", notes: "Rustig uitlopen" },
           ],
         },
         {
@@ -408,16 +408,15 @@ export function generateTrainingPlan(): Workout[] {
       days: [
         {
           day: 2,
-          title: "Easy Run + Core",
+          title: "Tempo Intervals",
           type: "run",
-          difficulty: "easy",
-          duration: "45 min",
-          description: "Iets langer dan vorige week. Houd het praattempo aan.",
+          difficulty: "moderate",
+          duration: "30 min",
+          description: "Eerste interval training. Korte blokken net boven je comforttempo.",
           exercises: [
-            { name: "Easy Run", duration: "35 min", notes: "Praattempo" },
-            { name: "Plank", sets: 3, duration: "40 sec", rest: "30 sec" },
-            { name: "Dead Bug", sets: 3, reps: "10 per kant", rest: "30 sec" },
-            { name: "Side Plank", sets: 2, duration: "25 sec per kant", rest: "30 sec" },
+            { name: "Warming-up", duration: "5 min", notes: "Rustig inlopen" },
+            { name: "Tempo Intervals", sets: 4, duration: "3 min", rest: "2 min rustig", notes: "5:45/km" },
+            { name: "Cooling down", duration: "5 min", notes: "Rustig uitlopen" },
           ],
         },
         {
@@ -459,15 +458,16 @@ export function generateTrainingPlan(): Workout[] {
       days: [
         {
           day: 2,
-          title: "Intervals Intro",
+          title: "Easy Run + Strides",
           type: "run",
-          difficulty: "moderate",
-          duration: "40 min",
-          description: "Je eerste interval training. Korte blokken net boven je comforttempo.",
+          difficulty: "easy",
+          duration: "35 min",
+          description: "Rustige duurloop met korte versnellingen aan het eind.",
           exercises: [
-            { name: "Warm-up jog", duration: "10 min" },
-            { name: "Intervals", sets: 4, distance: "400m", rest: "2 min", notes: "70-75% effort" },
-            { name: "Cool-down jog", duration: "10 min" },
+            { name: "Warming-up", duration: "5 min", notes: "Rustig inlopen" },
+            { name: "Easy Run", duration: "20 min", notes: "Gemak, 6:30/km" },
+            { name: "Strides", sets: 4, duration: "30 sec", rest: "60 sec", notes: "Snel maar geen sprint, soepel lopen" },
+            { name: "Cooling down", duration: "5 min", notes: "Rustig uitlopen" },
           ],
         },
         {
@@ -511,15 +511,15 @@ export function generateTrainingPlan(): Workout[] {
       days: [
         {
           day: 2,
-          title: "Tempo Run",
+          title: "Tempo Intervals",
           type: "run",
           difficulty: "moderate",
-          duration: "45 min",
-          description: "Tempo run om je lactaatdrempel te verleggen. Comfortabel hard.",
+          duration: "35 min",
+          description: "Meer intervallen, tempo gaat omhoog. Je lactaatdrempel verschuift.",
           exercises: [
-            { name: "Warm-up", duration: "10 min", notes: "Easy jog" },
-            { name: "Tempo Run", duration: "20 min", notes: "Comfortabel hard, 70-75% effort" },
-            { name: "Cool-down", duration: "10 min" },
+            { name: "Warming-up", duration: "5 min", notes: "Rustig inlopen" },
+            { name: "Tempo Intervals", sets: 5, duration: "3 min", rest: "90 sec rustig", notes: "5:30-5:45/km" },
+            { name: "Cooling down", duration: "5 min", notes: "Rustig uitlopen" },
           ],
         },
         {
@@ -565,15 +565,15 @@ export function generateTrainingPlan(): Workout[] {
       days: [
         {
           day: 2,
-          title: "Heuvel Repeats",
+          title: "Easy Run",
           type: "run",
-          difficulty: "moderate",
-          duration: "35 min",
-          description: "Korte heuvelloopjes voor beenkracht. Gecontroleerd, geen sprints.",
+          difficulty: "easy",
+          duration: "40 min",
+          description: "Rustige duurloop. Herstel van de vorige week, bouw volume op.",
           exercises: [
-            { name: "Warm-up jog", duration: "10 min" },
-            { name: "Hill Repeats", sets: 4, duration: "30 sec", rest: "2 min walk terug", notes: "75% effort, geen sprint" },
-            { name: "Cool-down jog", duration: "10 min" },
+            { name: "Warming-up", duration: "5 min", notes: "Rustig inlopen" },
+            { name: "Easy Run", duration: "30 min", notes: "Gemak, 6:00-6:30/km" },
+            { name: "Cooling down", duration: "5 min", notes: "Rustig uitlopen" },
           ],
         },
         {
@@ -617,15 +617,15 @@ export function generateTrainingPlan(): Workout[] {
       days: [
         {
           day: 2,
-          title: "Intervals Opbouw",
+          title: "Lange Intervals",
           type: "run",
           difficulty: "moderate",
-          duration: "45 min",
-          description: "Meer intervals, iets langer. Je hardloopvorm groeit.",
+          duration: "35 min",
+          description: "Langere intervallen. Je went aan aanhoudend tempo lopen.",
           exercises: [
-            { name: "Warm-up jog", duration: "10 min" },
-            { name: "Intervals", sets: 5, distance: "400m", rest: "2 min", notes: "75% effort" },
-            { name: "Cool-down jog", duration: "10 min" },
+            { name: "Warming-up", duration: "5 min", notes: "Rustig inlopen" },
+            { name: "Tempo Intervals", sets: 4, duration: "4 min", rest: "2 min rustig", notes: "5:30/km" },
+            { name: "Cooling down", duration: "5 min", notes: "Rustig uitlopen" },
           ],
         },
         {
@@ -674,14 +674,15 @@ export function generateTrainingPlan(): Workout[] {
       days: [
         {
           day: 2,
-          title: "Long Run",
+          title: "Interval Run",
           type: "run",
           difficulty: "moderate",
-          duration: "50 min",
-          description: "Langere duurloop. Je aerobe motor moet stevig zijn voor 8 km op race day.",
+          duration: "40 min",
+          description: "Langere intervallen op stevig tempo. Je bouwt richting race pace.",
           exercises: [
-            { name: "Long Run", duration: "45 min", notes: "Praattempo, gelijkmatig" },
-            { name: "Stretching", duration: "5 min" },
+            { name: "Warming-up", duration: "5 min", notes: "Rustig inlopen" },
+            { name: "Tempo Intervals", sets: 5, duration: "4 min", rest: "90 sec rustig", notes: "5:20-5:30/km" },
+            { name: "Cooling down", duration: "5 min", notes: "Rustig uitlopen" },
           ],
         },
         {
@@ -720,15 +721,15 @@ export function generateTrainingPlan(): Workout[] {
       days: [
         {
           day: 2,
-          title: "Tempo Intervals",
+          title: "Tempo Run",
           type: "run",
           difficulty: "moderate",
-          duration: "45 min",
-          description: "Langere tempo-intervallen. Je went aan hardlopen op inspanning.",
+          duration: "30 min",
+          description: "Aaneengesloten tempo run. Wen aan langere inspanning zonder pauze.",
           exercises: [
-            { name: "Warm-up", duration: "10 min" },
-            { name: "Tempo Intervals", sets: 3, distance: "800m", rest: "2 min", notes: "75% effort" },
-            { name: "Cool-down", duration: "10 min" },
+            { name: "Warming-up", duration: "5 min", notes: "Rustig inlopen" },
+            { name: "Tempo Run", duration: "20 min", notes: "Aaneengesloten op 5:30/km" },
+            { name: "Cooling down", duration: "5 min", notes: "Rustig uitlopen" },
           ],
         },
         {
