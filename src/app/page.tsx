@@ -95,7 +95,7 @@ export default function Home() {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Beast Mode Veer en Yns</h1>
-            <p className="text-base text-zinc-500 dark:text-zinc-400">19-weken plan</p>
+            <p className="text-base text-zinc-500 dark:text-zinc-400">15-weken plan</p>
           </div>
         </div>
       </header>
@@ -104,7 +104,7 @@ export default function Home() {
         <div className="mb-3 flex items-center justify-between">
           <div>
             <p className="text-sm font-medium uppercase tracking-wider text-amber-100">
-              Week {currentWeek} van 19
+              Week {currentWeek} van 15
             </p>
             <h2 className="text-xl font-bold">{weekPhases[currentWeek - 1]}</h2>
           </div>

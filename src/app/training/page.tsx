@@ -93,7 +93,7 @@ export default function TrainingPage() {
       <header className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Trainingsplan</h1>
         <p className="text-base text-zinc-500 dark:text-zinc-400">
-          19 weken naar race day
+          15 weken naar race day
         </p>
       </header>
 
