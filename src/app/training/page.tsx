@@ -196,7 +196,12 @@ export default function TrainingPage() {
                     {cw.time && <span>{cw.time}</span>}
                   </div>
                 </div>
-                <span className="text-green-600 dark:text-green-400">
+                <span className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                  {cw.completedAt && (
+                    <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
+                      {new Date(cw.completedAt).toLocaleDateString("nl-NL", { day: "2-digit", month: "2-digit" }).replace("/", "-")}
+                    </span>
+                  )}
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20 6L9 17l-5-5" />
                   </svg>
