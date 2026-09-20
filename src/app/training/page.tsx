@@ -40,6 +40,15 @@ export default function TrainingPage() {
     setCompleted(getCompletedWorkouts());
     setSwapped(getSwappedWorkouts());
     setCustomWorkouts(getCustomWorkoutsForWeek(week));
+
+    function handleVisibility() {
+      if (document.visibilityState === "visible") {
+        setCompleted(getCompletedWorkouts());
+        setSwapped(getSwappedWorkouts());
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
 
   const workouts = generateTrainingPlan();

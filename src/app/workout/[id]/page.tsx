@@ -317,26 +317,28 @@ export default function WorkoutDetailPage() {
                       )}
                     </div>
                   </div>
-                  {thumb ? (
-                    <div className="relative flex-shrink-0 overflow-hidden rounded-lg w-24 h-24">
-                      <img
-                        src={thumb}
-                        alt={exercise.name}
-                        loading="lazy"
-                        className="h-full w-full object-cover"
-                      />
+                  {workout.type !== "run" && (
+                    thumb ? (
+                      <div className="relative flex-shrink-0 overflow-hidden rounded-lg w-24 h-24">
+                        <img
+                          src={thumb}
+                          alt={exercise.name}
+                          loading="lazy"
+                          className="h-full w-full object-cover"
+                        />
+                        <ProgressOverlay
+                          stage={exProgress[i] ?? 0}
+                          onTap={() => handleExerciseTap(i)}
+                          hasThumb
+                        />
+                      </div>
+                    ) : (
                       <ProgressOverlay
                         stage={exProgress[i] ?? 0}
                         onTap={() => handleExerciseTap(i)}
-                        hasThumb
+                        hasThumb={false}
                       />
-                    </div>
-                  ) : (
-                    <ProgressOverlay
-                      stage={exProgress[i] ?? 0}
-                      onTap={() => handleExerciseTap(i)}
-                      hasThumb={false}
-                    />
+                    )
                   )}
                 </div>
               </div>
