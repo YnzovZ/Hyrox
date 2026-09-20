@@ -30,12 +30,20 @@ const difficultyDots: Record<string, number> = {
 interface WorkoutCardProps {
   workout: Workout;
   completed?: boolean;
+  completedAt?: string;
   swapped?: SwappedWorkout | null;
   onClick?: () => void;
   onSwap?: () => void;
 }
 
-export default function WorkoutCard({ workout, completed, swapped, onClick, onSwap }: WorkoutCardProps) {
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  return `${day}-${month}`;
+}
+
+export default function WorkoutCard({ workout, completed, completedAt, swapped, onClick, onSwap }: WorkoutCardProps) {
   const [offsetX, setOffsetX] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const startX = useRef(0);
@@ -181,7 +189,12 @@ export default function WorkoutCard({ workout, completed, swapped, onClick, onSw
             </div>
             <div className="flex flex-col items-end gap-2">
               {(completed || swapped) && (
-                <span className="text-green-600 dark:text-green-400">
+                <span className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                  {(completedAt || swapped?.completedAt) && (
+                    <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
+                      {formatDate((completedAt || swapped?.completedAt)!)}
+                    </span>
+                  )}
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20 6L9 17l-5-5" />
                   </svg>

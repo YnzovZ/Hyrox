@@ -162,6 +162,7 @@ export default function TrainingPage() {
             <WorkoutCard
               workout={workout}
               completed={completed.some((c) => c.workoutId === workout.id)}
+              completedAt={completed.find((c) => c.workoutId === workout.id)?.completedAt}
               swapped={swapped.find((s) => s.workoutId === workout.id) ?? null}
               onClick={() => {
                 window.location.href = `/workout/${workout.id}`;
