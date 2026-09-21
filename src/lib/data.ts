@@ -379,6 +379,7 @@ export function generateTrainingPlan(): Workout[] {
           duration: "45 min",
           description: "Leer de basisbewegingen. Focus op techniek, niet op gewicht.",
           exercises: [
+            { name: "Roei-ergometer", distance: "1 km", notes: "Warming-up" },
             { name: "Goblet Squat", sets: 3, reps: "10", rest: "60 sec" },
             { name: "Romanian Deadlift", sets: 3, reps: "10", rest: "60 sec" },
             { name: "Seated Dumbbell Press", sets: 3, reps: "10", rest: "60 sec", notes: "Bankje op 60 graden" },
@@ -427,6 +428,7 @@ export function generateTrainingPlan(): Workout[] {
           duration: "50 min",
           description: "Basiskracht met je eerste Hyrox-specifieke oefening: de farmers walk.",
           exercises: [
+            { name: "Roei-ergometer", distance: "1 km", notes: "Warming-up" },
             { name: "Goblet Squat", sets: 3, reps: "10", rest: "60 sec" },
             { name: "Romanian Deadlift", sets: 3, reps: "10", rest: "60 sec" },
             { name: "Seated Dumbbell Press", sets: 3, reps: "10", rest: "60 sec", notes: "Bankje op 60 graden" },
@@ -478,6 +480,7 @@ export function generateTrainingPlan(): Workout[] {
           duration: "50 min",
           description: "Iets meer volume. Je lichaam went aan de belasting.",
           exercises: [
+            { name: "Roei-ergometer", distance: "1 km", notes: "Warming-up" },
             { name: "Back Squat", sets: 3, reps: "8", rest: "90 sec", notes: "Licht gewicht, techniek eerst" },
             { name: "Romanian Deadlift", sets: 3, reps: "10", rest: "60 sec" },
             { name: "Seated Dumbbell Press", sets: 3, reps: "10", rest: "60 sec", notes: "Bankje op 60 graden" },
@@ -530,6 +533,7 @@ export function generateTrainingPlan(): Workout[] {
           duration: "50 min",
           description: "Focus op push- en pull-bewegingen die je nodig hebt bij Hyrox.",
           exercises: [
+            { name: "Roei-ergometer", distance: "1 km", notes: "Warming-up" },
             { name: "Back Squat", sets: 3, reps: "8", rest: "90 sec" },
             { name: "Sled Push simulatie (Prowler)", distance: "4x 25m", rest: "90 sec" },
             { name: "Cable Row", sets: 3, reps: "12", rest: "60 sec" },
@@ -584,6 +588,7 @@ export function generateTrainingPlan(): Workout[] {
           duration: "55 min",
           description: "Sled push en pull erbij. Dit worden je sterkste wapens op race day.",
           exercises: [
+            { name: "Roei-ergometer", distance: "1 km", notes: "Warming-up" },
             { name: "Trap Bar Deadlift", sets: 3, reps: "8", rest: "2 min" },
             { name: "Sled Push", distance: "4x 25m", rest: "90 sec" },
             { name: "Sled Pull (rope)", distance: "4x 25m", rest: "90 sec" },
@@ -636,6 +641,7 @@ export function generateTrainingPlan(): Workout[] {
           duration: "50 min",
           description: "Je eerste circuit. Iets minder rust, meer conditioneel werk.",
           exercises: [
+            { name: "Roei-ergometer", distance: "1 km", notes: "Warming-up" },
             { name: "Wall Balls", reps: "12", notes: "Direct door naar volgende oefening" },
             { name: "Kettlebell Swings", reps: "12" },
             { name: "Push-ups", reps: "8" },
@@ -693,6 +699,7 @@ export function generateTrainingPlan(): Workout[] {
           duration: "55 min",
           description: "Compound lifts gericht op Hyrox-stations. Stevig maar controleerbaar gewicht.",
           exercises: [
+            { name: "Roei-ergometer", distance: "1 km", notes: "Warming-up" },
             { name: "Trap Bar Deadlift", sets: 4, reps: "6", rest: "2 min" },
             { name: "Sled Push", distance: "4x 30m", rest: "2 min" },
             { name: "Sled Pull (rope)", distance: "4x 25m", rest: "90 sec" },
@@ -740,6 +747,7 @@ export function generateTrainingPlan(): Workout[] {
           duration: "50 min",
           description: "Kracht en uithoudingsvermogen combineren. Goed tempo, geen haast.",
           exercises: [
+            { name: "Roei-ergometer", distance: "1 km", notes: "Warming-up" },
             { name: "Dumbbell Thruster", sets: 3, reps: "10", rest: "60 sec" },
             { name: "Step-ups", sets: 3, reps: "10 per been", rest: "60 sec" },
             { name: "Kettlebell Swings", sets: 3, reps: "12", rest: "60 sec" },
@@ -797,6 +805,7 @@ export function generateTrainingPlan(): Workout[] {
           duration: "50 min",
           description: "Hogere reps, focus op volhouden. Train je spieren om door te gaan.",
           exercises: [
+            { name: "Roei-ergometer", distance: "1 km", notes: "Warming-up" },
             { name: "Back Squat", sets: 3, reps: "10", rest: "90 sec" },
             { name: "Hip Thrust", sets: 3, reps: "12", rest: "60 sec" },
             { name: "Cable Row", sets: 3, reps: "12", rest: "60 sec" },
@@ -844,6 +853,7 @@ export function generateTrainingPlan(): Workout[] {
           duration: "55 min",
           description: "Stevige compound lifts. Controleerbaar gewicht, goede vorm.",
           exercises: [
+            { name: "Roei-ergometer", distance: "1 km", notes: "Warming-up" },
             { name: "Trap Bar Deadlift", sets: 4, reps: "5", rest: "2 min" },
             { name: "Back Squat", sets: 3, reps: "8", rest: "90 sec" },
             { name: "Sled Push", distance: "4x 30m", rest: "2 min" },
@@ -895,6 +905,7 @@ export function generateTrainingPlan(): Workout[] {
           duration: "50 min",
           description: "Circuit training met Hyrox-oefeningen. Doorwerken met voldoende rust.",
           exercises: [
+            { name: "Roei-ergometer", distance: "1 km", notes: "Warming-up" },
             { name: "Wall Balls", reps: "15", notes: "Direct door" },
             { name: "Kettlebell Swings", reps: "12" },
             { name: "Step-ups", reps: "8 per been" },
@@ -1052,6 +1063,7 @@ export function generateTrainingPlan(): Workout[] {
           duration: "45 min",
           description: "Krachtig en efficiënt. Focus op Hyrox-specifieke bewegingen.",
           exercises: [
+            { name: "Roei-ergometer", distance: "1 km", notes: "Warming-up" },
             { name: "Trap Bar Deadlift", sets: 3, reps: "6", rest: "2 min" },
             { name: "Medicine Ball Slam", sets: 3, reps: "8", rest: "60 sec" },
             { name: "Kettlebell Swings", sets: 3, reps: "12", rest: "60 sec" },
@@ -1103,6 +1115,7 @@ export function generateTrainingPlan(): Workout[] {
           duration: "50 min",
           description: "Hyrox-specifieke kracht. Laatste stevige krachttraining voor de taper.",
           exercises: [
+            { name: "Roei-ergometer", distance: "1 km", notes: "Warming-up" },
             { name: "Trap Bar Deadlift", sets: 3, reps: "6", rest: "2 min" },
             { name: "Sled Push", distance: "3x 50m", rest: "2 min" },
             { name: "Sled Pull", distance: "3x 50m", rest: "2 min" },
