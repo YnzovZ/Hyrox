@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { generateTrainingPlan, weekPhases, dayNames, Workout } from "@/lib/data";
+import { generateTrainingPlan, weekPhases, dayNames, getWeekDateRange, Workout } from "@/lib/data";
 import { getCurrentWeek, setCurrentWeek as saveCurrentWeek, getCompletedWorkouts, CompletedWorkout, getSwappedWorkouts, SwappedWorkout, getCustomWorkoutsForWeek, CustomWorkout, removeSwappedWorkout, removeCompletedWorkout, removeExerciseProgress } from "@/lib/storage";
 import WorkoutCard from "@/components/WorkoutCard";
 import SwapModal from "@/components/SwapModal";
@@ -142,7 +142,7 @@ export default function TrainingPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold">{weekPhases[activeWeek - 1]}</h2>
-            <p className="text-base text-zinc-500 dark:text-zinc-400">Week {activeWeek}</p>
+            <p className="text-base text-zinc-500 dark:text-zinc-400">Week {activeWeek} · {getWeekDateRange(activeWeek)}</p>
           </div>
           <div className="text-right">
             <p className="text-xl font-bold text-amber-600 dark:text-amber-400">

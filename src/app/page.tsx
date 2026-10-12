@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { generateTrainingPlan, weekPhases, Workout } from "@/lib/data";
+import { generateTrainingPlan, weekPhases, getWeekDateRange, Workout } from "@/lib/data";
 import { getCurrentWeek, getCompletedWorkouts, CompletedWorkout, getSwappedWorkouts, SwappedWorkout, getCustomWorkoutsForWeek, CustomWorkout, removeSwappedWorkout, removeCompletedWorkout, removeExerciseProgress } from "@/lib/storage";
 import WorkoutCard from "@/components/WorkoutCard";
 import SwapModal from "@/components/SwapModal";
@@ -107,6 +107,7 @@ export default function Home() {
               Week {currentWeek} van 18
             </p>
             <h2 className="text-xl font-bold">{weekPhases[currentWeek - 1]}</h2>
+            <p className="text-sm text-amber-100">{getWeekDateRange(currentWeek)}</p>
           </div>
           <div className="text-right">
             <p className="text-3xl font-bold">{weekCompleted}/{weekTotal}</p>

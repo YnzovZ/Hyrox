@@ -1343,3 +1343,20 @@ export const weekPhases = [
 ];
 
 export const dayNames = ["", "Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
+
+const WEEK1_START = new Date(2026, 8, 21);
+
+const shortMonths = ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
+
+export function getWeekDateRange(week: number): string {
+  const start = new Date(WEEK1_START);
+  start.setDate(start.getDate() + (week - 1) * 7);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  const d1 = start.getDate();
+  const m1 = shortMonths[start.getMonth()];
+  const d2 = end.getDate();
+  const m2 = shortMonths[end.getMonth()];
+  if (m1 === m2) return `${d1} - ${d2} ${m2}`;
+  return `${d1} ${m1} - ${d2} ${m2}`;
+}
