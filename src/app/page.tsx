@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { generateTrainingPlan, weekPhases, getWeekDateRange, Workout } from "@/lib/data";
+import { generateTrainingPlan, weekPhases, getWeekDateRange, getWorkoutDate, getDaysUntilRaceDay, formatWorkoutDate, RACE_DAY, Workout } from "@/lib/data";
 import { getCurrentWeek, getCompletedWorkouts, CompletedWorkout, getSwappedWorkouts, SwappedWorkout, getCustomWorkoutsForWeek, CustomWorkout, removeSwappedWorkout, removeCompletedWorkout, removeExerciseProgress } from "@/lib/storage";
 import WorkoutCard from "@/components/WorkoutCard";
 import SwapModal from "@/components/SwapModal";
@@ -77,6 +77,22 @@ export default function Home() {
   const weekTotal = weekWorkouts.length + customWorkouts.length;
 
   const progress = totalWorkouts > 0 ? (completedCount / totalWorkouts) * 100 : 0;
+  const daysUntilRace = getDaysUntilRaceDay();
+  const weeksUntilRace = Math.floor(daysUntilRace / 7);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const upcomingWorkouts = workouts
+    .filter((w) => {
+      const wDate = getWorkoutDate(w.week, w.day);
+      return wDate >= today && !completed.some((c) => c.workoutId === w.id);
+    })
+    .sort((a, b) => {
+      const dateA = getWorkoutDate(a.week, a.day);
+      const dateB = getWorkoutDate(b.week, b.day);
+      return dateA.getTime() - dateB.getTime();
+    })
+    .slice(0, 3);
 
   if (!mounted) {
     return (
@@ -123,6 +139,60 @@ export default function Home() {
         <p className="mt-1.5 text-sm text-amber-100">
           {completedCount} van {totalWorkouts} workouts voltooid
         </p>
+      </section>
+
+      <section className="mb-6">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-base font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+            Aftellen naar race day
+          </h2>
+          <span className="text-sm text-zinc-400 dark:text-zinc-500">
+            {RACE_DAY.toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" })}
+          </span>
+        </div>
+        <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="mb-3 flex items-center gap-4">
+            <div className="flex flex-col items-center rounded-xl bg-amber-50 px-4 py-2 dark:bg-amber-950/30">
+              <span className="text-3xl font-bold text-amber-600 dark:text-amber-400">{daysUntilRace}</span>
+              <span className="text-xs font-medium text-amber-600/70 dark:text-amber-400/70">dagen</span>
+            </div>
+            <div className="flex flex-col items-center rounded-xl bg-zinc-50 px-4 py-2 dark:bg-zinc-800">
+              <span className="text-3xl font-bold text-zinc-700 dark:text-zinc-200">{weeksUntilRace}</span>
+              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">weken</span>
+            </div>
+          </div>
+          {upcomingWorkouts.length > 0 && (
+            <div className="border-t border-zinc-100 pt-3 dark:border-zinc-800">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Eerstvolgende trainingen</p>
+              <div className="flex flex-col gap-2">
+                {upcomingWorkouts.map((w) => {
+                  const wDate = getWorkoutDate(w.week, w.day);
+                  const isToday = wDate.getTime() === today.getTime();
+                  return (
+                    <button
+                      key={w.id}
+                      onClick={() => { window.location.href = `/workout/${w.id}`; }}
+                      className="flex items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-zinc-50 active:scale-[0.98] dark:hover:bg-zinc-800"
+                    >
+                      <span className={`w-16 text-sm font-medium ${isToday ? "text-amber-600 dark:text-amber-400" : "text-zinc-400 dark:text-zinc-500"}`}>
+                        {isToday ? "vandaag" : formatWorkoutDate(wDate)}
+                      </span>
+                      <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${typeColors[w.type]}`}>
+                        {typeLabels[w.type] || w.type}
+                      </span>
+                      <span className="flex-1 truncate text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                        {w.title}
+                      </span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-zinc-300 dark:text-zinc-600">
+                        <path d="M9 18l6-6-6-6" />
+                      </svg>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="mb-6">

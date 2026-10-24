@@ -1345,6 +1345,7 @@ export const weekPhases = [
 export const dayNames = ["", "Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
 
 const WEEK1_START = new Date(2026, 8, 21);
+export const RACE_DAY = new Date(2027, 0, 23);
 
 const shortMonths = ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
 
@@ -1359,4 +1360,25 @@ export function getWeekDateRange(week: number): string {
   const m2 = shortMonths[end.getMonth()];
   if (m1 === m2) return `${d1} - ${d2} ${m2}`;
   return `${d1} ${m1} - ${d2} ${m2}`;
+}
+
+export function getWorkoutDate(week: number, day: number): Date {
+  const date = new Date(WEEK1_START);
+  date.setDate(date.getDate() + (week - 1) * 7 + (day - 1));
+  return date;
+}
+
+export function getDaysUntilRaceDay(): number {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const race = new Date(RACE_DAY);
+  race.setHours(0, 0, 0, 0);
+  return Math.ceil((race.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+export function formatWorkoutDate(date: Date): string {
+  const dayNum = date.getDate();
+  const month = shortMonths[date.getMonth()];
+  const weekday = ["zo", "ma", "di", "wo", "do", "vr", "za"][date.getDay()];
+  return `${weekday} ${dayNum} ${month}`;
 }
