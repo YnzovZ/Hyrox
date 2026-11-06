@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   presetTrainings,
   suggestNextTraining,
+  getCoachTip,
   muscleGroupLabels,
   type MuscleGroup,
   type GymTrainingTemplate,
@@ -29,14 +30,16 @@ const muscleColors: Record<MuscleGroup, string> = {
 export default function GymPage() {
   const [customTrainings, setCustomTrainings] = useState<SavedGymTraining[]>([]);
   const [suggestion, setSuggestion] = useState<GymTrainingTemplate | null>(null);
+  const [coachTip, setCoachTip] = useState("");
   const [mounted, setMounted] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
     setCustomTrainings(getGymTrainings());
-    const recent = getRecentGymSessions(3);
-    const recentGroups = recent.flatMap((s) => s.muscleGroups) as MuscleGroup[];
+    const recent = getRecentGymSessions(10);
+    setCoachTip(getCoachTip(recent));
+    const recentGroups = recent.slice(0, 3).flatMap((s) => s.muscleGroups) as MuscleGroup[];
     setSuggestion(suggestNextTraining(recentGroups));
   }, []);
 
@@ -62,6 +65,17 @@ export default function GymPage() {
           Kies een training of maak er zelf een
         </p>
       </header>
+
+      {coachTip && (
+        <div className="mb-6 flex gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+          <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-base dark:bg-amber-900/40">
+            💪
+          </span>
+          <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+            {coachTip}
+          </p>
+        </div>
+      )}
 
       {suggestion && (
         <section className="mb-6">

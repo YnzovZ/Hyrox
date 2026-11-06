@@ -236,6 +236,53 @@ export const presetTrainings: GymTrainingTemplate[] = [
   },
 ];
 
+export function getCoachTip(sessions: { completedAt: string; muscleGroups: string[] }[]): string {
+  if (sessions.length === 0) {
+    return "Eerste gym sessie? Mooi. Begin rustig, focus op techniek, en bouw op vanaf daar.";
+  }
+
+  const now = new Date();
+  const last = new Date(sessions[0].completedAt);
+  const daysSince = Math.floor((now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+  const lastGroups = sessions[0].muscleGroups.map((g) => muscleGroupLabels[g as MuscleGroup] || g);
+  const lastGroupStr = lastGroups.slice(0, 2).join(" en ");
+
+  const thisWeekSessions = sessions.filter((s) => {
+    const d = new Date(s.completedAt);
+    const diff = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+    return diff < 7;
+  }).length;
+
+  if (daysSince === 0) {
+    return `Vandaag al ${lastGroupStr} gedaan. Rust is ook training. Morgen weer.`;
+  }
+
+  if (daysSince === 1) {
+    if (thisWeekSessions >= 3) {
+      return `${thisWeekSessions} sessies deze week, sterke discipline. Pak vandaag een andere spiergroep dan ${lastGroupStr}.`;
+    }
+    return `Gisteren ${lastGroupStr} gehad. Goed ritme, pak vandaag iets anders.`;
+  }
+
+  if (daysSince === 2) {
+    return `Twee dagen rust na ${lastGroupStr}. Perfect hersteld, klaar voor de volgende.`;
+  }
+
+  if (daysSince <= 4) {
+    return `${daysSince} dagen geleden ${lastGroupStr} getraind. Goed moment om weer te gaan.`;
+  }
+
+  if (daysSince <= 7) {
+    return `Al ${daysSince} dagen geleden, tijd om het ritme weer op te pakken. Je lichaam is er klaar voor.`;
+  }
+
+  if (daysSince <= 14) {
+    return "Meer dan een week geleden. Geen stress, maar hoe langer je wacht hoe lastiger het wordt. Vandaag is een goed moment.";
+  }
+
+  return "Even niet in de gym geweest. Maakt niet uit, je begint waar je bent. Ga gewoon.";
+}
+
 export function suggestNextTraining(recentMuscleGroups: MuscleGroup[]): GymTrainingTemplate {
   const groupCounts: Record<MuscleGroup, number> = {
     chest: 0, back: 0, shoulders: 0, biceps: 0, triceps: 0, legs: 0, core: 0,
@@ -244,10 +291,11 @@ export function suggestNextTraining(recentMuscleGroups: MuscleGroup[]): GymTrain
     groupCounts[g] = (groupCounts[g] || 0) + 1;
   }
 
-  // Upper body gets a slight priority boost (negative = "feels less trained" = more needed)
+  // Upper body priority boost (negative = "feels less trained" = more needed)
+  // Biceps/triceps get extra bonus: Ynzo pakt die bijna elke sessie mee
   const upperBias: Partial<Record<MuscleGroup, number>> = {
     chest: -0.3, back: -0.3, shoulders: -0.3,
-    biceps: -0.2, triceps: -0.2,
+    biceps: -0.5, triceps: -0.5,
   };
 
   let bestTraining = presetTrainings[0];
