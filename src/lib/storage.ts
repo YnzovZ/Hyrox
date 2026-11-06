@@ -301,3 +301,34 @@ export function saveGymWeight(exerciseId: string, weight: string): void {
   all[exerciseId] = weight;
   safeSet(STORAGE_KEYS.gymWeightHistory, all);
 }
+
+export function exportAllData(): string {
+  if (typeof window === "undefined") return "{}";
+  const data: Record<string, unknown> = {};
+  for (const key of Object.values(STORAGE_KEYS)) {
+    try {
+      const item = localStorage.getItem(key);
+      if (item) data[key] = JSON.parse(item);
+    } catch {}
+  }
+  return JSON.stringify(data, null, 2);
+}
+
+export function importAllData(json: string): { success: boolean; error?: string } {
+  try {
+    const data = JSON.parse(json) as Record<string, unknown>;
+    const validKeys = new Set<string>(Object.values(STORAGE_KEYS));
+    let count = 0;
+    for (const [key, value] of Object.entries(data)) {
+      if (validKeys.has(key)) {
+        if (typeof window !== "undefined") {
+          try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+        }
+        count++;
+      }
+    }
+    return { success: true };
+  } catch {
+    return { success: false, error: "Ongeldig bestand" };
+  }
+}

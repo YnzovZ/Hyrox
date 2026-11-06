@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { generateTrainingPlan, weekPhases } from "@/lib/data";
 import {
   getCompletedWorkouts,
@@ -11,6 +11,8 @@ import {
   CustomWorkout,
   getGymSessions,
   CompletedGymSession,
+  exportAllData,
+  importAllData,
 } from "@/lib/storage";
 
 type RecentActivity = {
@@ -27,13 +29,19 @@ export default function ProgressPage() {
   const [custom, setCustom] = useState<CustomWorkout[]>([]);
   const [gymSessions, setGymSessions] = useState<CompletedGymSession[]>([]);
   const [mounted, setMounted] = useState(false);
+  const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    setMounted(true);
+  function refreshAll() {
     setCompleted(getCompletedWorkouts());
     setSwapped(getSwappedWorkouts());
     setCustom(getCustomWorkouts());
     setGymSessions(getGymSessions());
+  }
+
+  useEffect(() => {
+    setMounted(true);
+    refreshAll();
   }, []);
 
   const workouts = generateTrainingPlan();
@@ -287,6 +295,80 @@ export default function ProgressPage() {
           </div>
         </section>
       )}
+      <section className="mb-24">
+        <h2 className="mb-3 text-base font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+          Data beheer
+        </h2>
+        <div className="space-y-3">
+          <button
+            onClick={() => {
+              const json = exportAllData();
+              const blob = new Blob([json], { type: "application/json" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `gym-backup-${new Date().toISOString().slice(0, 10)}.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-left transition-colors hover:border-amber-300 active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-amber-700"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-amber-500">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <div>
+              <p className="text-base font-medium">Backup downloaden</p>
+              <p className="text-sm text-zinc-400">Sla je trainingsdata op als bestand</p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-left transition-colors hover:border-amber-300 active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-amber-700"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-amber-500">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <div>
+              <p className="text-base font-medium">Backup herstellen</p>
+              <p className="text-sm text-zinc-400">Laad een eerder opgeslagen bestand</p>
+            </div>
+          </button>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = () => {
+                const result = importAllData(reader.result as string);
+                if (result.success) {
+                  setImportMsg({ ok: true, text: "Data hersteld. Pagina wordt herladen..." });
+                  setTimeout(() => window.location.reload(), 1000);
+                } else {
+                  setImportMsg({ ok: false, text: result.error ?? "Import mislukt" });
+                }
+              };
+              reader.readAsText(file);
+              e.target.value = "";
+            }}
+          />
+
+          {importMsg && (
+            <p className={`rounded-lg px-3 py-2 text-sm ${importMsg.ok ? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400" : "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400"}`}>
+              {importMsg.text}
+            </p>
+          )}
+        </div>
+      </section>
     </main>
   );
 }
