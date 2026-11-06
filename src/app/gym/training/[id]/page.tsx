@@ -33,64 +33,102 @@ interface ActiveExercise {
 
 const allMuscleGroups: MuscleGroup[] = ["chest", "back", "shoulders", "biceps", "triceps", "legs", "core"];
 
-const SWIPE_THRESHOLD = 80;
+const DELETE_BTN_W = 76;
+const DRAG_THRESHOLD = 5;
+const ITEM_GAP = 12;
 
 function SwipeableCard({
   children,
   onRemove,
+  isOpen,
+  onOpen,
 }: {
   children: React.ReactNode;
   onRemove: () => void;
+  isOpen: boolean;
+  onOpen: () => void;
 }) {
-  const cardRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const startX = useRef(0);
-  const currentX = useRef(0);
-  const isDragging = useRef(false);
+  const offsetRef = useRef(0);
+  const swiping = useRef(false);
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    startX.current = e.touches[0].clientX;
-    currentX.current = 0;
-    isDragging.current = true;
-  }, []);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!isDragging.current || !cardRef.current) return;
-    const diff = e.touches[0].clientX - startX.current;
-    if (diff > 0) return;
-    currentX.current = diff;
-    cardRef.current.style.transform = `translateX(${diff}px)`;
-    cardRef.current.style.opacity = `${Math.max(0.3, 1 - Math.abs(diff) / 200)}`;
-  }, []);
-
-  const handleTouchEnd = useCallback(() => {
-    isDragging.current = false;
-    if (!cardRef.current) return;
-    if (Math.abs(currentX.current) > SWIPE_THRESHOLD) {
-      cardRef.current.style.transition = "transform 0.2s, opacity 0.2s";
-      cardRef.current.style.transform = "translateX(-120%)";
-      cardRef.current.style.opacity = "0";
-      setTimeout(onRemove, 200);
-    } else {
-      cardRef.current.style.transition = "transform 0.2s, opacity 0.2s";
-      cardRef.current.style.transform = "translateX(0)";
-      cardRef.current.style.opacity = "1";
+  useEffect(() => {
+    if (!contentRef.current) return;
+    if (!isOpen && offsetRef.current !== 0) {
+      offsetRef.current = 0;
+      contentRef.current.style.transition = "transform 0.2s ease-out";
+      contentRef.current.style.transform = "translateX(0)";
+      const el = contentRef.current;
+      setTimeout(() => { el.style.transition = ""; }, 200);
     }
-    setTimeout(() => {
-      if (cardRef.current) {
-        cardRef.current.style.transition = "";
-      }
-    }, 200);
-  }, [onRemove]);
+  }, [isOpen]);
+
+  function onTouchStart(e: React.TouchEvent) {
+    if ((e.target as HTMLElement).closest("[data-drag-handle]")) return;
+    startX.current = e.touches[0].clientX;
+    swiping.current = true;
+  }
+
+  function onTouchMove(e: React.TouchEvent) {
+    if (!swiping.current || !contentRef.current) return;
+    const base = isOpen ? -DELETE_BTN_W : 0;
+    const diff = e.touches[0].clientX - startX.current + base;
+    const clamped = Math.max(-DELETE_BTN_W, Math.min(0, diff));
+    offsetRef.current = clamped;
+    contentRef.current.style.transform = `translateX(${clamped}px)`;
+  }
+
+  function onTouchEnd() {
+    swiping.current = false;
+    if (!contentRef.current) return;
+    const shouldOpen = offsetRef.current < -DELETE_BTN_W / 2;
+    contentRef.current.style.transition = "transform 0.2s ease-out";
+
+    if (shouldOpen) {
+      contentRef.current.style.transform = `translateX(-${DELETE_BTN_W}px)`;
+      offsetRef.current = -DELETE_BTN_W;
+      onOpen();
+    } else {
+      contentRef.current.style.transform = "translateX(0)";
+      offsetRef.current = 0;
+    }
+
+    const el = contentRef.current;
+    setTimeout(() => { el.style.transition = ""; }, 200);
+  }
+
+  function handleRemove() {
+    if (!contentRef.current) {
+      onRemove();
+      return;
+    }
+    contentRef.current.style.transition = "transform 0.2s ease-in, opacity 0.2s ease-in";
+    contentRef.current.style.transform = "translateX(-100%)";
+    contentRef.current.style.opacity = "0";
+    setTimeout(onRemove, 200);
+  }
 
   return (
-    <div
-      ref={cardRef}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      className="relative"
-    >
-      {children}
+    <div className="relative overflow-hidden rounded-xl">
+      <button
+        onClick={handleRemove}
+        className="absolute right-0 top-0 bottom-0 flex w-[76px] flex-col items-center justify-center gap-1 rounded-r-xl bg-red-500 text-white active:bg-red-600"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 6h18" /><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" /><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+        </svg>
+        <span className="text-xs font-semibold">Wissen</span>
+      </button>
+      <div
+        ref={contentRef}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        className="relative z-10"
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -114,6 +152,16 @@ export default function GymTrainingPage() {
   const [mounted, setMounted] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [filterGroup, setFilterGroup] = useState<MuscleGroup | "all">("all");
+
+  const [openSwipeIdx, setOpenSwipeIdx] = useState<number | null>(null);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dragOffset, setDragOffset] = useState(0);
+
+  const dragStartY = useRef(0);
+  const isDragActive = useRef(false);
+  const pendingDragIdx = useRef<number | null>(null);
+  const itemPositions = useRef<{ top: number; height: number }[]>([]);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     setMounted(true);
@@ -205,18 +253,7 @@ export default function GymTrainingPage() {
     setActiveExercises((prev) => prev.filter((_, i) => i !== idx));
     if (editIdx === idx) setEditIdx(null);
     else if (editIdx !== null && editIdx > idx) setEditIdx(editIdx - 1);
-  }
-
-  function moveExercise(idx: number, direction: "up" | "down") {
-    const newIdx = direction === "up" ? idx - 1 : idx + 1;
-    if (newIdx < 0 || newIdx >= activeExercises.length) return;
-    setActiveExercises((prev) => {
-      const copy = [...prev];
-      [copy[idx], copy[newIdx]] = [copy[newIdx], copy[idx]];
-      return copy;
-    });
-    if (editIdx === idx) setEditIdx(newIdx);
-    else if (editIdx === newIdx) setEditIdx(idx);
+    setOpenSwipeIdx(null);
   }
 
   function addExercise(exercise: GymExercise) {
@@ -235,6 +272,111 @@ export default function GymTrainingPage() {
     ]);
     setShowPicker(false);
   }
+
+  // --- Drag-to-reorder logic ---
+
+  function cacheItemPositions() {
+    itemPositions.current = itemRefs.current.map((el) => {
+      if (!el) return { top: 0, height: 0 };
+      const rect = el.getBoundingClientRect();
+      return { top: rect.top, height: rect.height };
+    });
+  }
+
+  function computeTargetIdx(offset: number): number {
+    if (dragIdx === null) return -1;
+    const pos = itemPositions.current;
+    if (!pos[dragIdx]) return dragIdx;
+
+    const draggedCenter = pos[dragIdx].top + pos[dragIdx].height / 2 + offset;
+    let target = dragIdx;
+
+    for (let i = 0; i < pos.length; i++) {
+      if (i === dragIdx || !pos[i]) continue;
+      const mid = pos[i].top + pos[i].height / 2;
+      if (dragIdx < i && draggedCenter > mid) target = i;
+      if (dragIdx > i && draggedCenter < mid) target = i;
+    }
+    return target;
+  }
+
+  function getItemStyle(i: number): React.CSSProperties {
+    if (dragIdx === null) return {};
+
+    if (i === dragIdx) {
+      return {
+        transform: `translateY(${dragOffset}px)`,
+        zIndex: 10,
+        opacity: 0.85,
+        boxShadow: "0 8px 25px rgba(0,0,0,0.15)",
+        position: "relative",
+      };
+    }
+
+    const target = computeTargetIdx(dragOffset);
+    const draggedH = (itemPositions.current[dragIdx]?.height || 0) + ITEM_GAP;
+
+    if (dragIdx < target && i > dragIdx && i <= target) {
+      return { transform: `translateY(-${draggedH}px)`, transition: "transform 0.15s ease" };
+    }
+    if (dragIdx > target && i >= target && i < dragIdx) {
+      return { transform: `translateY(${draggedH}px)`, transition: "transform 0.15s ease" };
+    }
+
+    return { transition: "transform 0.15s ease" };
+  }
+
+  function handleDragTouchStart(idx: number, clientY: number) {
+    pendingDragIdx.current = idx;
+    dragStartY.current = clientY;
+    isDragActive.current = false;
+    setOpenSwipeIdx(null);
+  }
+
+  function handleContainerTouchMove(e: React.TouchEvent) {
+    if (pendingDragIdx.current === null && dragIdx === null) return;
+
+    const clientY = e.touches[0].clientY;
+    const offset = clientY - dragStartY.current;
+
+    if (!isDragActive.current) {
+      if (Math.abs(offset) > DRAG_THRESHOLD) {
+        isDragActive.current = true;
+        cacheItemPositions();
+        setDragIdx(pendingDragIdx.current);
+        setDragOffset(offset);
+      }
+      return;
+    }
+
+    setDragOffset(offset);
+  }
+
+  function handleContainerTouchEnd() {
+    if (isDragActive.current && dragIdx !== null) {
+      const target = computeTargetIdx(dragOffset);
+      if (target !== dragIdx) {
+        setActiveExercises((prev) => {
+          const copy = [...prev];
+          const [item] = copy.splice(dragIdx, 1);
+          copy.splice(target, 0, item);
+          return copy;
+        });
+        if (editIdx !== null) {
+          if (editIdx === dragIdx) setEditIdx(target);
+          else if (dragIdx < target && editIdx > dragIdx && editIdx <= target) setEditIdx(editIdx - 1);
+          else if (dragIdx > target && editIdx >= target && editIdx < dragIdx) setEditIdx(editIdx + 1);
+        }
+      }
+    }
+
+    pendingDragIdx.current = null;
+    isDragActive.current = false;
+    setDragIdx(null);
+    setDragOffset(0);
+  }
+
+  // --- Completion ---
 
   function completeTraining() {
     if (!training) return;
@@ -280,6 +422,8 @@ export default function GymTrainingPage() {
 
     setShowComplete(true);
   }
+
+  // --- Render ---
 
   if (!mounted || !training) {
     return (
@@ -339,9 +483,13 @@ export default function GymTrainingPage() {
         </button>
         <div>
           <h1 className="text-xl font-bold">{training.name}</h1>
-          <p className="text-xs text-zinc-400 dark:text-zinc-500">
-            Swipe links om te verwijderen
-          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {training.muscleGroups.map((mg) => (
+              <span key={mg} className="text-xs text-zinc-500 dark:text-zinc-400">
+                {muscleGroupLabels[mg]}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -389,58 +537,81 @@ export default function GymTrainingPage() {
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
           Oefeningen ({activeExercises.length})
         </h2>
-        <div className="flex flex-col gap-3">
+        <div
+          className="flex flex-col gap-3"
+          onTouchMove={handleContainerTouchMove}
+          onTouchEnd={handleContainerTouchEnd}
+        >
           {activeExercises.map((ex, idx) => {
             const def = getExerciseById(ex.exerciseId);
             const isEditing = editIdx === idx;
+            const isDragging = dragIdx === idx;
             return (
-              <SwipeableCard key={`${ex.exerciseId}-${idx}`} onRemove={() => removeExercise(idx)}>
-                <div
-                  className={`rounded-xl border p-4 transition-all ${
-                    ex.done
-                      ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20"
-                      : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
-                  }`}
+              <div
+                key={`${ex.exerciseId}-${idx}`}
+                ref={(el) => { itemRefs.current[idx] = el; }}
+                style={getItemStyle(idx)}
+              >
+                <SwipeableCard
+                  onRemove={() => removeExercise(idx)}
+                  isOpen={openSwipeIdx === idx}
+                  onOpen={() => setOpenSwipeIdx(idx)}
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <button
-                      onClick={() => toggleExerciseDone(idx)}
-                      className={`mt-0.5 flex-shrink-0 rounded-full p-1 transition-colors ${
-                        ex.done ? "text-green-600" : "text-zinc-300 hover:text-zinc-500 dark:text-zinc-600"
-                      }`}
-                    >
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20 6L9 17l-5-5" />
-                      </svg>
-                    </button>
-                    <div className="min-w-0 flex-1">
-                      <h3 className={`font-semibold ${ex.done ? "text-green-700 dark:text-green-400" : "text-zinc-900 dark:text-zinc-100"}`}>
-                        {ex.name}
-                      </h3>
-                      {def && (
-                        <span className="text-xs text-zinc-400 dark:text-zinc-500">
-                          {muscleGroupLabels[def.muscleGroup]} &middot; {def.equipment}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex flex-shrink-0 items-center gap-0.5">
-                      <button
-                        onClick={() => moveExercise(idx, "up")}
-                        disabled={idx === 0}
-                        className="rounded p-1 text-zinc-400 hover:text-zinc-600 disabled:opacity-30 dark:hover:text-zinc-300"
+                  <div
+                    className={`rounded-xl border p-4 transition-colors ${
+                      isDragging
+                        ? "border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30"
+                        : ex.done
+                          ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20"
+                          : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      {/* Drag handle */}
+                      <div
+                        data-drag-handle
+                        onTouchStart={(e) => {
+                          e.stopPropagation();
+                          handleDragTouchStart(idx, e.touches[0].clientY);
+                        }}
+                        style={{ touchAction: "none" }}
+                        className="mt-1 flex flex-shrink-0 cursor-grab items-center py-1 pr-1 text-zinc-300 active:text-zinc-500 dark:text-zinc-600 dark:active:text-zinc-400"
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 15l-6-6-6 6" /></svg>
-                      </button>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                          <line x1="4" y1="8" x2="20" y2="8" />
+                          <line x1="4" y1="12" x2="20" y2="12" />
+                          <line x1="4" y1="16" x2="20" y2="16" />
+                        </svg>
+                      </div>
+
+                      {/* Checkmark */}
                       <button
-                        onClick={() => moveExercise(idx, "down")}
-                        disabled={idx === activeExercises.length - 1}
-                        className="rounded p-1 text-zinc-400 hover:text-zinc-600 disabled:opacity-30 dark:hover:text-zinc-300"
+                        onClick={() => toggleExerciseDone(idx)}
+                        className={`mt-0.5 flex-shrink-0 rounded-full p-1 transition-colors ${
+                          ex.done ? "text-green-600" : "text-zinc-300 hover:text-zinc-500 dark:text-zinc-600"
+                        }`}
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6" /></svg>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20 6L9 17l-5-5" />
+                        </svg>
                       </button>
+
+                      {/* Content */}
+                      <div className="min-w-0 flex-1">
+                        <h3 className={`font-semibold ${ex.done ? "text-green-700 dark:text-green-400" : "text-zinc-900 dark:text-zinc-100"}`}>
+                          {ex.name}
+                        </h3>
+                        {def && (
+                          <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                            {muscleGroupLabels[def.muscleGroup]} &middot; {def.equipment}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Edit button */}
                       <button
                         onClick={() => setEditIdx(isEditing ? null : idx)}
-                        className="rounded-lg p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800"
+                        className="flex-shrink-0 rounded-lg p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800"
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
@@ -448,61 +619,61 @@ export default function GymTrainingPage() {
                         </svg>
                       </button>
                     </div>
-                  </div>
 
-                  <div className="mt-2 flex items-center gap-4">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-zinc-400">Sets</span>
-                      <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">{ex.sets}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-zinc-400">Reps</span>
-                      <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">{ex.reps}</span>
-                    </div>
-                    {ex.weight && (
+                    <div className="mt-2 flex items-center gap-4 pl-7">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-zinc-400">Gewicht</span>
-                        <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{ex.weight} kg</span>
+                        <span className="text-xs text-zinc-400">Sets</span>
+                        <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">{ex.sets}</span>
                       </div>
-                    )}
-                  </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-zinc-400">Reps</span>
+                        <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">{ex.reps}</span>
+                      </div>
+                      {ex.weight && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-zinc-400">Gewicht</span>
+                          <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{ex.weight} kg</span>
+                        </div>
+                      )}
+                    </div>
 
-                  {isEditing && (
-                    <div className="mt-3 flex flex-col gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
-                      <div className="flex gap-3">
-                        <div className="flex-1">
-                          <label className="mb-1 block text-xs text-zinc-400">Sets</label>
-                          <div className="flex items-center gap-2">
-                            <button onClick={() => updateSets(idx, ex.sets - 1)} className="rounded-lg border border-zinc-200 px-2.5 py-1 text-sm dark:border-zinc-700">-</button>
-                            <span className="w-8 text-center text-sm font-semibold">{ex.sets}</span>
-                            <button onClick={() => updateSets(idx, ex.sets + 1)} className="rounded-lg border border-zinc-200 px-2.5 py-1 text-sm dark:border-zinc-700">+</button>
+                    {isEditing && (
+                      <div className="mt-3 ml-7 flex flex-col gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+                        <div className="flex gap-3">
+                          <div className="flex-1">
+                            <label className="mb-1 block text-xs text-zinc-400">Sets</label>
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => updateSets(idx, ex.sets - 1)} className="rounded-lg border border-zinc-200 px-2.5 py-1 text-sm dark:border-zinc-700">-</button>
+                              <span className="w-8 text-center text-sm font-semibold">{ex.sets}</span>
+                              <button onClick={() => updateSets(idx, ex.sets + 1)} className="rounded-lg border border-zinc-200 px-2.5 py-1 text-sm dark:border-zinc-700">+</button>
+                            </div>
+                          </div>
+                          <div className="flex-1">
+                            <label className="mb-1 block text-xs text-zinc-400">Reps</label>
+                            <input
+                              type="text"
+                              value={ex.reps}
+                              onChange={(e) => updateReps(idx, e.target.value)}
+                              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                            />
                           </div>
                         </div>
-                        <div className="flex-1">
-                          <label className="mb-1 block text-xs text-zinc-400">Reps</label>
+                        <div>
+                          <label className="mb-1 block text-xs text-zinc-400">Gewicht (kg)</label>
                           <input
                             type="text"
-                            value={ex.reps}
-                            onChange={(e) => updateReps(idx, e.target.value)}
+                            inputMode="decimal"
+                            value={ex.weight}
+                            onChange={(e) => updateWeight(idx, e.target.value)}
                             className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                            placeholder="bv. 55"
                           />
                         </div>
                       </div>
-                      <div>
-                        <label className="mb-1 block text-xs text-zinc-400">Gewicht (kg)</label>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={ex.weight}
-                          onChange={(e) => updateWeight(idx, e.target.value)}
-                          className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-                          placeholder="bv. 55"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </SwipeableCard>
+                    )}
+                  </div>
+                </SwipeableCard>
+              </div>
             );
           })}
         </div>
