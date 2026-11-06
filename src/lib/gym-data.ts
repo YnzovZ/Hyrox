@@ -283,7 +283,16 @@ export function getCoachTip(sessions: { completedAt: string; muscleGroups: strin
   return "Even niet in de gym geweest. Maakt niet uit, je begint waar je bent. Ga gewoon.";
 }
 
-export function suggestNextTraining(recentMuscleGroups: MuscleGroup[]): GymTrainingTemplate {
+export function suggestNextTraining(
+  recentMuscleGroups: MuscleGroup[],
+  daysSinceLastSession?: number,
+): GymTrainingTemplate {
+  const fullBody = presetTrainings.find((t) => t.id === "preset-full-body")!;
+
+  if (recentMuscleGroups.length === 0 || (daysSinceLastSession != null && daysSinceLastSession >= 5)) {
+    return fullBody;
+  }
+
   const groupCounts: Record<MuscleGroup, number> = {
     chest: 0, back: 0, shoulders: 0, biceps: 0, triceps: 0, legs: 0, core: 0,
   };
