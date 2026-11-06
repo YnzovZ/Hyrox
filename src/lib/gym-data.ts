@@ -244,18 +244,26 @@ export function suggestNextTraining(recentMuscleGroups: MuscleGroup[]): GymTrain
     groupCounts[g] = (groupCounts[g] || 0) + 1;
   }
 
-  const pushCount = groupCounts.chest + groupCounts.shoulders + groupCounts.triceps;
-  const pullCount = groupCounts.back + groupCounts.biceps;
+  // Upper body gets a slight priority boost (negative = "feels less trained" = more needed)
+  const upperBias: Partial<Record<MuscleGroup, number>> = {
+    chest: -0.3, back: -0.3, shoulders: -0.3,
+    biceps: -0.2, triceps: -0.2,
+  };
 
-  if (pushCount <= pullCount) {
-    if (groupCounts.legs < 2) {
-      return presetTrainings.find((t) => t.id === "preset-push-legs")!;
+  let bestTraining = presetTrainings[0];
+  let bestScore = -Infinity;
+
+  for (const training of presetTrainings) {
+    let score = 0;
+    for (const mg of training.muscleGroups) {
+      const effective = groupCounts[mg] + (upperBias[mg] ?? 0);
+      score += 3 - effective;
     }
-    return presetTrainings.find((t) => t.id === "preset-push-power")!;
-  } else {
-    if (groupCounts.legs < 2) {
-      return presetTrainings.find((t) => t.id === "preset-pull-legs")!;
+    if (score > bestScore) {
+      bestScore = score;
+      bestTraining = training;
     }
-    return presetTrainings.find((t) => t.id === "preset-pull-power")!;
   }
+
+  return bestTraining;
 }
