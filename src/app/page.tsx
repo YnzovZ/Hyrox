@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { generateTrainingPlan, weekPhases, getWeekDateRange, getWorkoutDate, getDaysUntilRaceDay, formatWorkoutDate, RACE_DAY, Workout } from "@/lib/data";
-import { getCurrentWeek, getCompletedWorkouts, CompletedWorkout, getSwappedWorkouts, SwappedWorkout, getCustomWorkoutsForWeek, CustomWorkout, removeSwappedWorkout, removeCompletedWorkout, removeExerciseProgress } from "@/lib/storage";
+import { getCalendarWeek, getCompletedWorkouts, CompletedWorkout, getSwappedWorkouts, SwappedWorkout, getCustomWorkoutsForWeek, CustomWorkout, removeSwappedWorkout, removeCompletedWorkout, removeExerciseProgress } from "@/lib/storage";
 import WorkoutCard from "@/components/WorkoutCard";
 import SwapModal from "@/components/SwapModal";
 import AddWorkoutModal from "@/components/AddWorkoutModal";
@@ -36,7 +36,7 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
-    const week = getCurrentWeek();
+    const week = getCalendarWeek();
     setCurrentWeek(week);
     setCompleted(getCompletedWorkouts());
     setSwapped(getSwappedWorkouts());

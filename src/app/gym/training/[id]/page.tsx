@@ -19,7 +19,7 @@ import {
   saveGymWeight,
   saveGymSession,
   saveGymTraining,
-  getCurrentWeek,
+  getCalendarWeek,
 } from "@/lib/storage";
 
 interface ActiveExercise {
@@ -393,7 +393,7 @@ export default function GymTrainingPage() {
       if (def) currentMuscleGroups.add(def.muscleGroup);
     }
 
-    const week = getCurrentWeek();
+    const week = getCalendarWeek();
     saveGymSession({
       id: `gym-${Date.now()}`,
       trainingId: training.sourceId,

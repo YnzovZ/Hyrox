@@ -134,6 +134,17 @@ export function getCurrentWeek(): number {
   return safeGet<number>(STORAGE_KEYS.currentWeek, 1);
 }
 
+export function getCalendarWeek(): number {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const start = new Date(2026, 8, 21);
+  start.setHours(0, 0, 0, 0);
+  const diff = now.getTime() - start.getTime();
+  if (diff < 0) return 1;
+  const week = Math.floor(diff / (7 * 24 * 60 * 60 * 1000)) + 1;
+  return Math.min(Math.max(week, 1), 18);
+}
+
 export function setCurrentWeek(week: number): void {
   safeSet(STORAGE_KEYS.currentWeek, week);
 }

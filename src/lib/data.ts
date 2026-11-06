@@ -1360,6 +1360,17 @@ export function getWorkoutDate(week: number, day: number): Date {
   return date;
 }
 
+export function getCalendarWeek(): number {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const start = new Date(WEEK1_START);
+  start.setHours(0, 0, 0, 0);
+  const diff = now.getTime() - start.getTime();
+  if (diff < 0) return 1;
+  const week = Math.floor(diff / (7 * 24 * 60 * 60 * 1000)) + 1;
+  return Math.min(Math.max(week, 1), 18);
+}
+
 export function getDaysUntilRaceDay(): number {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
