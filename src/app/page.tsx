@@ -107,10 +107,10 @@ export default function Home() {
       <header className="mb-8">
         <div className="mb-1 flex items-center gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500">
-            <svg width="22" height="28" viewBox="0 0 60 76" fill="none">
-              <path d="M20 28C20 8 40 8 40 28" stroke="white" strokeWidth="6" strokeLinecap="round" fill="none"/>
-              <rect x="14" y="26" width="32" height="8" rx="2" fill="white"/>
-              <ellipse cx="30" cy="54" rx="24" ry="22" fill="white"/>
+            <svg width="20" height="24" viewBox="0 0 100 122" fill="none">
+              <path d="M30 50C28 40 26 28 28 20C32 6 68 6 72 20C74 28 72 40 70 50" stroke="white" strokeWidth="5" strokeLinecap="round"/>
+              <path d="M38 48C37 42 36 30 38 24C40 16 60 16 62 24C64 30 63 42 62 48" stroke="white" strokeWidth="5" strokeLinecap="round"/>
+              <path d="M30 50C22 52 10 62 10 78C10 96 28 112 50 112C72 112 90 96 90 78C90 62 78 52 70 50" stroke="white" strokeWidth="5" strokeLinecap="round"/>
             </svg>
           </div>
           <div>
