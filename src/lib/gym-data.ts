@@ -236,51 +236,58 @@ export const presetTrainings: GymTrainingTemplate[] = [
   },
 ];
 
-export function getCoachTip(sessions: { completedAt: string; muscleGroups: string[] }[]): string {
-  if (sessions.length === 0) {
-    return "Eerste gym sessie? Mooi. Begin rustig, focus op techniek, en bouw op vanaf daar.";
+export function getCoachTip(
+  sessions: { completedAt: string; muscleGroups: string[] }[],
+  daysSinceStrength?: number,
+): string {
+  const days = daysSinceStrength;
+
+  if (days == null) {
+    return "Eerste krachttraining in de app? Begin rustig, focus op techniek, en bouw op.";
   }
 
-  const now = new Date();
-  const last = new Date(sessions[0].completedAt);
-  const daysSince = Math.floor((now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
-  const lastGroups = sessions[0].muscleGroups.map((g) => muscleGroupLabels[g as MuscleGroup] || g);
+  const lastGroups = sessions.length > 0
+    ? sessions[0].muscleGroups.map((g) => muscleGroupLabels[g as MuscleGroup] || g)
+    : [];
   const lastGroupStr = lastGroups.slice(0, 2).join(" en ");
 
+  const now = new Date();
   const thisWeekSessions = sessions.filter((s) => {
-    const d = new Date(s.completedAt);
-    const diff = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+    const diff = Math.floor((now.getTime() - new Date(s.completedAt).getTime()) / (1000 * 60 * 60 * 24));
     return diff < 7;
   }).length;
 
-  if (daysSince === 0) {
-    return `Vandaag al ${lastGroupStr} gedaan. Rust is ook training. Morgen weer.`;
-  }
-
-  if (daysSince === 1) {
-    if (thisWeekSessions >= 3) {
-      return `${thisWeekSessions} sessies deze week, sterke discipline. Pak vandaag een andere spiergroep dan ${lastGroupStr}.`;
+  if (days === 0) {
+    if (lastGroupStr) {
+      return `Vandaag al ${lastGroupStr} gedaan. Rust is ook training. Morgen weer.`;
     }
-    return `Gisteren ${lastGroupStr} gehad. Goed ritme, pak vandaag iets anders.`;
+    return "Vandaag al getraind. Rust is ook training. Morgen weer.";
   }
 
-  if (daysSince === 2) {
-    return `Twee dagen rust na ${lastGroupStr}. Perfect hersteld, klaar voor de volgende.`;
+  if (days === 1) {
+    if (thisWeekSessions >= 3) {
+      return `${thisWeekSessions} sessies deze week, sterke discipline. Pak vandaag een andere spiergroep${lastGroupStr ? ` dan ${lastGroupStr}` : ""}.`;
+    }
+    return `Gisteren getraind${lastGroupStr ? ` (${lastGroupStr})` : ""}. Goed ritme, pak vandaag iets anders.`;
   }
 
-  if (daysSince <= 4) {
-    return `${daysSince} dagen geleden ${lastGroupStr} getraind. Goed moment om weer te gaan.`;
+  if (days === 2) {
+    return `Twee dagen rust${lastGroupStr ? ` na ${lastGroupStr}` : ""}. Perfect hersteld, klaar voor de volgende.`;
   }
 
-  if (daysSince <= 7) {
-    return `Al ${daysSince} dagen geleden, tijd om het ritme weer op te pakken. Je lichaam is er klaar voor.`;
+  if (days <= 4) {
+    return `${days} dagen geleden getraind. Goed moment om weer te gaan.`;
   }
 
-  if (daysSince <= 14) {
-    return "Meer dan een week geleden. Geen stress, maar hoe langer je wacht hoe lastiger het wordt. Vandaag is een goed moment.";
+  if (days <= 7) {
+    return "Je laatste training was lang genoeg geleden om alles weer te trainen. Full body is een goede keuze.";
   }
 
-  return "Even niet in de gym geweest. Maakt niet uit, je begint waar je bent. Ga gewoon.";
+  if (days <= 14) {
+    return "Meer dan een week geleden. Pak een full body, dan train je alles weer even aan.";
+  }
+
+  return "Even niet in de gym geweest. Begin met full body, dan is alles weer wakker. Ga gewoon.";
 }
 
 export function suggestNextTraining(

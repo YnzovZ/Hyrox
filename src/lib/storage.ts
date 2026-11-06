@@ -262,6 +262,24 @@ export function saveGymSession(session: CompletedGymSession): void {
   safeSet(STORAGE_KEYS.gymSessions, all);
 }
 
+export function getLastStrengthDate(): Date | null {
+  const dates: Date[] = [];
+
+  for (const s of getGymSessions()) {
+    dates.push(new Date(s.completedAt));
+  }
+  for (const sw of getSwappedWorkouts()) {
+    if (sw.type === "strength") dates.push(new Date(sw.completedAt));
+  }
+  for (const cw of getCustomWorkouts()) {
+    if (cw.type === "strength") dates.push(new Date(cw.completedAt));
+  }
+
+  if (dates.length === 0) return null;
+  dates.sort((a, b) => b.getTime() - a.getTime());
+  return dates[0];
+}
+
 export function getGymWeightForExercise(exerciseId: string): string | null {
   const all = safeGet<Record<string, string>>(STORAGE_KEYS.gymWeightHistory, {});
   return all[exerciseId] ?? null;

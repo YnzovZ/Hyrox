@@ -13,6 +13,7 @@ import {
 import {
   getGymTrainings,
   getRecentGymSessions,
+  getLastStrengthDate,
   deleteGymTraining,
   type SavedGymTraining,
 } from "@/lib/storage";
@@ -38,11 +39,12 @@ export default function GymPage() {
     setMounted(true);
     setCustomTrainings(getGymTrainings());
     const recent = getRecentGymSessions(10);
-    setCoachTip(getCoachTip(recent));
-    const recentGroups = recent.slice(0, 3).flatMap((s) => s.muscleGroups) as MuscleGroup[];
-    const daysSince = recent.length > 0
-      ? Math.floor((Date.now() - new Date(recent[0].completedAt).getTime()) / (1000 * 60 * 60 * 24))
+    const lastStrength = getLastStrengthDate();
+    const daysSince = lastStrength
+      ? Math.floor((Date.now() - lastStrength.getTime()) / (1000 * 60 * 60 * 24))
       : undefined;
+    setCoachTip(getCoachTip(recent, daysSince));
+    const recentGroups = recent.slice(0, 3).flatMap((s) => s.muscleGroups) as MuscleGroup[];
     setSuggestion(suggestNextTraining(recentGroups, daysSince));
   }, []);
 
