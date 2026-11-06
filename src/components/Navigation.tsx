@@ -6,8 +6,7 @@ import { usePathname } from "next/navigation";
 const navItems = [
   { href: "/", label: "Home", icon: "home" },
   { href: "/training", label: "Training", icon: "training" },
-  { href: "/stations", label: "Stations", icon: "stations" },
-  { href: "/timer", label: "Timer", icon: "timer" },
+  { href: "/gym", label: "Gym", icon: "gym" },
   { href: "/progress", label: "Voortgang", icon: "progress" },
 ];
 
@@ -43,6 +42,16 @@ function NavIcon({ icon, active }: { icon: string; active: boolean }) {
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10" />
           <polyline points="12 6 12 12 16 14" />
+        </svg>
+      );
+    case "gym":
+      return (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6.5 6.5h11" />
+          <path d="M6.5 17.5h11" />
+          <rect x="2" y="8.5" width="4" height="7" rx="1" />
+          <rect x="18" y="8.5" width="4" height="7" rx="1" />
+          <path d="M6.5 12h11" />
         </svg>
       );
     case "progress":

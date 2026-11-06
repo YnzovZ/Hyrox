@@ -268,28 +268,25 @@ export default function Home() {
         <h2 className="mb-3 text-base font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
           Snel starten
         </h2>
-        <div className="grid grid-cols-2 gap-3">
-          <Link
-            href="/timer"
-            className="flex flex-col items-center gap-2 rounded-xl border border-zinc-200 bg-white p-4 transition-all hover:border-amber-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-amber-700"
-          >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500">
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="12 6 12 12 16 14" />
-            </svg>
-            <span className="text-base font-medium">Timer</span>
-          </Link>
-          <Link
-            href="/stations"
-            className="flex flex-col items-center gap-2 rounded-xl border border-zinc-200 bg-white p-4 transition-all hover:border-amber-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-amber-700"
-          >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M8 12l2 2 4-4" />
-            </svg>
-            <span className="text-base font-medium">Stations</span>
-          </Link>
-        </div>
+        <Link
+          href="/gym"
+          className="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white p-4 transition-all hover:border-amber-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-amber-700"
+        >
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-amber-500">
+            <path d="M6.5 6.5h11" />
+            <path d="M6.5 17.5h11" />
+            <rect x="2" y="8.5" width="4" height="7" rx="1" />
+            <rect x="18" y="8.5" width="4" height="7" rx="1" />
+            <path d="M6.5 12h11" />
+          </svg>
+          <div>
+            <span className="text-base font-semibold text-zinc-900 dark:text-zinc-100">Gym training starten</span>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">Kies of maak een training</p>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto flex-shrink-0 text-zinc-300 dark:text-zinc-600">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </Link>
       </section>
 
       {swapTarget && (

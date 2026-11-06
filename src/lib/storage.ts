@@ -32,6 +32,31 @@ export interface CustomWorkout {
   completedAt: string;
 }
 
+export interface SavedGymTraining {
+  id: string;
+  name: string;
+  exercises: { exerciseId: string; sets: number; reps: string }[];
+  warmupKey: string;
+  createdAt: string;
+  lastUsed?: string;
+}
+
+export interface CompletedGymSession {
+  id: string;
+  trainingId: string;
+  trainingName: string;
+  completedAt: string;
+  week?: number;
+  muscleGroups: string[];
+  exercises: {
+    exerciseId: string;
+    weight: string;
+    sets: number;
+    reps: string;
+    done: boolean;
+  }[];
+}
+
 const STORAGE_KEYS = {
   completedWorkouts: "hyrox_completed",
   profile: "hyrox_profile",
@@ -41,6 +66,9 @@ const STORAGE_KEYS = {
   chosenAlternatives: "hyrox_chosen_alts",
   swappedWorkouts: "hyrox_swapped",
   customWorkouts: "hyrox_custom",
+  gymTrainings: "hyrox_gym_trainings",
+  gymSessions: "hyrox_gym_sessions",
+  gymWeightHistory: "hyrox_gym_weight_history",
 } as const;
 
 function safeGet<T>(key: string, fallback: T): T {
@@ -192,4 +220,53 @@ export function saveCustomWorkout(workout: CustomWorkout): void {
 export function deleteCustomWorkout(id: string): void {
   const all = getCustomWorkouts().filter((w) => w.id !== id);
   safeSet(STORAGE_KEYS.customWorkouts, all);
+}
+
+// --- Gym training storage ---
+
+export function getGymTrainings(): SavedGymTraining[] {
+  return safeGet<SavedGymTraining[]>(STORAGE_KEYS.gymTrainings, []);
+}
+
+export function saveGymTraining(training: SavedGymTraining): void {
+  const all = getGymTrainings();
+  const idx = all.findIndex((t) => t.id === training.id);
+  if (idx >= 0) {
+    all[idx] = training;
+  } else {
+    all.push(training);
+  }
+  safeSet(STORAGE_KEYS.gymTrainings, all);
+}
+
+export function deleteGymTraining(id: string): void {
+  const all = getGymTrainings().filter((t) => t.id !== id);
+  safeSet(STORAGE_KEYS.gymTrainings, all);
+}
+
+export function getGymSessions(): CompletedGymSession[] {
+  return safeGet<CompletedGymSession[]>(STORAGE_KEYS.gymSessions, []);
+}
+
+export function getRecentGymSessions(count: number): CompletedGymSession[] {
+  return getGymSessions()
+    .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
+    .slice(0, count);
+}
+
+export function saveGymSession(session: CompletedGymSession): void {
+  const all = getGymSessions();
+  all.push(session);
+  safeSet(STORAGE_KEYS.gymSessions, all);
+}
+
+export function getGymWeightForExercise(exerciseId: string): string | null {
+  const all = safeGet<Record<string, string>>(STORAGE_KEYS.gymWeightHistory, {});
+  return all[exerciseId] ?? null;
+}
+
+export function saveGymWeight(exerciseId: string, weight: string): void {
+  const all = safeGet<Record<string, string>>(STORAGE_KEYS.gymWeightHistory, {});
+  all[exerciseId] = weight;
+  safeSet(STORAGE_KEYS.gymWeightHistory, all);
 }
