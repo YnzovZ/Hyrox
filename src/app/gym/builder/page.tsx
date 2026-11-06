@@ -97,10 +97,11 @@ function GymBuilderContent() {
     router.push("/gym");
   }
 
-  const filteredExercises =
+  const filteredExercises = (
     filterGroup === "all"
       ? exerciseLibrary
-      : exerciseLibrary.filter((e) => e.muscleGroup === filterGroup);
+      : exerciseLibrary.filter((e) => e.muscleGroup === filterGroup)
+  ).toSorted((a, b) => a.name.localeCompare(b.name));
 
   const alreadySelected = new Set(selectedExercises.map((e) => e.exerciseId));
 
