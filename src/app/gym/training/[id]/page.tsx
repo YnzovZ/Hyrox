@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   presetTrainings,
@@ -8,10 +8,10 @@ import {
   defaultWarmups,
   getExerciseById,
   muscleGroupLabels,
-  type GymTrainingTemplate,
   type GymTrainingExercise,
   type WarmupConfig,
   type MuscleGroup,
+  type GymExercise,
 } from "@/lib/gym-data";
 import {
   getGymTrainings,
@@ -20,7 +20,6 @@ import {
   saveGymSession,
   saveGymTraining,
   getCurrentWeek,
-  type SavedGymTraining,
 } from "@/lib/storage";
 
 interface ActiveExercise {
@@ -32,18 +31,89 @@ interface ActiveExercise {
   done: boolean;
 }
 
+const allMuscleGroups: MuscleGroup[] = ["chest", "back", "shoulders", "biceps", "triceps", "legs", "core"];
+
+const SWIPE_THRESHOLD = 80;
+
+function SwipeableCard({
+  children,
+  onRemove,
+}: {
+  children: React.ReactNode;
+  onRemove: () => void;
+}) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const startX = useRef(0);
+  const currentX = useRef(0);
+  const isDragging = useRef(false);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    currentX.current = 0;
+    isDragging.current = true;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDragging.current || !cardRef.current) return;
+    const diff = e.touches[0].clientX - startX.current;
+    if (diff > 0) return;
+    currentX.current = diff;
+    cardRef.current.style.transform = `translateX(${diff}px)`;
+    cardRef.current.style.opacity = `${Math.max(0.3, 1 - Math.abs(diff) / 200)}`;
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    isDragging.current = false;
+    if (!cardRef.current) return;
+    if (Math.abs(currentX.current) > SWIPE_THRESHOLD) {
+      cardRef.current.style.transition = "transform 0.2s, opacity 0.2s";
+      cardRef.current.style.transform = "translateX(-120%)";
+      cardRef.current.style.opacity = "0";
+      setTimeout(onRemove, 200);
+    } else {
+      cardRef.current.style.transition = "transform 0.2s, opacity 0.2s";
+      cardRef.current.style.transform = "translateX(0)";
+      cardRef.current.style.opacity = "1";
+    }
+    setTimeout(() => {
+      if (cardRef.current) {
+        cardRef.current.style.transition = "";
+      }
+    }, 200);
+  }, [onRemove]);
+
+  return (
+    <div
+      ref={cardRef}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      className="relative"
+    >
+      {children}
+    </div>
+  );
+}
+
 export default function GymTrainingPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
 
-  const [training, setTraining] = useState<{ name: string; exercises: GymTrainingExercise[]; warmup: WarmupConfig; muscleGroups: MuscleGroup[]; sourceId: string } | null>(null);
+  const [training, setTraining] = useState<{
+    name: string;
+    exercises: GymTrainingExercise[];
+    warmup: WarmupConfig;
+    muscleGroups: MuscleGroup[];
+    sourceId: string;
+  } | null>(null);
   const [activeExercises, setActiveExercises] = useState<ActiveExercise[]>([]);
-  const [started, setStarted] = useState(false);
   const [warmupDone, setWarmupDone] = useState(false);
   const [editIdx, setEditIdx] = useState<number | null>(null);
   const [showComplete, setShowComplete] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+  const [filterGroup, setFilterGroup] = useState<MuscleGroup | "all">("all");
 
   useEffect(() => {
     setMounted(true);
@@ -61,7 +131,10 @@ export default function GymTrainingPage() {
       const customId = id.replace("custom-", "");
       const customs = getGymTrainings();
       const custom = customs.find((t) => t.id === customId);
-      if (!custom) { router.push("/gym"); return; }
+      if (!custom) {
+        router.push("/gym");
+        return;
+      }
       name = custom.name;
       exercises = custom.exercises;
       warmupKey = custom.warmupKey;
@@ -74,7 +147,10 @@ export default function GymTrainingPage() {
       muscleGroups = Array.from(groups);
     } else {
       const preset = presetTrainings.find((t) => t.id === id);
-      if (!preset) { router.push("/gym"); return; }
+      if (!preset) {
+        router.push("/gym");
+        return;
+      }
       name = preset.name;
       exercises = preset.exercises;
       warmupKey = preset.warmupKey;
@@ -83,7 +159,6 @@ export default function GymTrainingPage() {
     }
 
     const warmup = defaultWarmups[warmupKey] || defaultWarmups.bike5;
-
     setTraining({ name, exercises, warmup, muscleGroups, sourceId });
 
     const active: ActiveExercise[] = exercises.map((ex) => {
@@ -126,6 +201,41 @@ export default function GymTrainingPage() {
     );
   }
 
+  function removeExercise(idx: number) {
+    setActiveExercises((prev) => prev.filter((_, i) => i !== idx));
+    if (editIdx === idx) setEditIdx(null);
+    else if (editIdx !== null && editIdx > idx) setEditIdx(editIdx - 1);
+  }
+
+  function moveExercise(idx: number, direction: "up" | "down") {
+    const newIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= activeExercises.length) return;
+    setActiveExercises((prev) => {
+      const copy = [...prev];
+      [copy[idx], copy[newIdx]] = [copy[newIdx], copy[idx]];
+      return copy;
+    });
+    if (editIdx === idx) setEditIdx(newIdx);
+    else if (editIdx === newIdx) setEditIdx(idx);
+  }
+
+  function addExercise(exercise: GymExercise) {
+    const savedWeight = getGymWeightForExercise(exercise.id);
+    const defaultWeight = exercise.ynzoWeight || "";
+    setActiveExercises((prev) => [
+      ...prev,
+      {
+        exerciseId: exercise.id,
+        name: exercise.name,
+        sets: exercise.defaultSets,
+        reps: exercise.defaultReps,
+        weight: savedWeight || defaultWeight,
+        done: false,
+      },
+    ]);
+    setShowPicker(false);
+  }
+
   function completeTraining() {
     if (!training) return;
 
@@ -135,6 +245,12 @@ export default function GymTrainingPage() {
       }
     }
 
+    const currentMuscleGroups = new Set<MuscleGroup>();
+    for (const ex of activeExercises) {
+      const def = getExerciseById(ex.exerciseId);
+      if (def) currentMuscleGroups.add(def.muscleGroup);
+    }
+
     const week = getCurrentWeek();
     saveGymSession({
       id: `gym-${Date.now()}`,
@@ -142,7 +258,7 @@ export default function GymTrainingPage() {
       trainingName: training.name,
       completedAt: new Date().toISOString(),
       week,
-      muscleGroups: training.muscleGroups,
+      muscleGroups: Array.from(currentMuscleGroups),
       exercises: activeExercises.map((ex) => ({
         exerciseId: ex.exerciseId,
         weight: ex.weight,
@@ -173,8 +289,15 @@ export default function GymTrainingPage() {
     );
   }
 
-  const allDone = activeExercises.every((ex) => ex.done);
+  const allDone = activeExercises.length > 0 && activeExercises.every((ex) => ex.done);
   const totalWarmup = training.warmup.intervals.reduce((sum, i) => sum + i.minutes, 0);
+  const alreadySelected = new Set(activeExercises.map((e) => e.exerciseId));
+
+  const filteredExercises = (
+    filterGroup === "all"
+      ? exerciseLibrary
+      : exerciseLibrary.filter((e) => e.muscleGroup === filterGroup)
+  ).toSorted((a, b) => a.name.localeCompare(b.name));
 
   if (showComplete) {
     return (
@@ -216,13 +339,9 @@ export default function GymTrainingPage() {
         </button>
         <div>
           <h1 className="text-xl font-bold">{training.name}</h1>
-          <div className="flex flex-wrap gap-1.5">
-            {training.muscleGroups.map((mg) => (
-              <span key={mg} className="text-xs text-zinc-500 dark:text-zinc-400">
-                {muscleGroupLabels[mg]}
-              </span>
-            ))}
-          </div>
+          <p className="text-xs text-zinc-400 dark:text-zinc-500">
+            Swipe links om te verwijderen
+          </p>
         </div>
       </div>
 
@@ -268,108 +387,135 @@ export default function GymTrainingPage() {
 
       <section className="mb-6">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-          Oefeningen
+          Oefeningen ({activeExercises.length})
         </h2>
         <div className="flex flex-col gap-3">
           {activeExercises.map((ex, idx) => {
             const def = getExerciseById(ex.exerciseId);
             const isEditing = editIdx === idx;
             return (
-              <div
-                key={ex.exerciseId}
-                className={`rounded-xl border p-4 transition-all ${
-                  ex.done
-                    ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20"
-                    : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <button
-                    onClick={() => toggleExerciseDone(idx)}
-                    className={`mt-0.5 flex-shrink-0 rounded-full p-1 transition-colors ${
-                      ex.done ? "text-green-600" : "text-zinc-300 hover:text-zinc-500 dark:text-zinc-600"
-                    }`}
-                  >
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                  </button>
-                  <div className="min-w-0 flex-1">
-                    <h3 className={`font-semibold ${ex.done ? "text-green-700 dark:text-green-400" : "text-zinc-900 dark:text-zinc-100"}`}>
-                      {ex.name}
-                    </h3>
-                    {def && (
-                      <span className="text-xs text-zinc-400 dark:text-zinc-500">
-                        {muscleGroupLabels[def.muscleGroup]} &middot; {def.equipment}
-                      </span>
+              <SwipeableCard key={`${ex.exerciseId}-${idx}`} onRemove={() => removeExercise(idx)}>
+                <div
+                  className={`rounded-xl border p-4 transition-all ${
+                    ex.done
+                      ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20"
+                      : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <button
+                      onClick={() => toggleExerciseDone(idx)}
+                      className={`mt-0.5 flex-shrink-0 rounded-full p-1 transition-colors ${
+                        ex.done ? "text-green-600" : "text-zinc-300 hover:text-zinc-500 dark:text-zinc-600"
+                      }`}
+                    >
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <h3 className={`font-semibold ${ex.done ? "text-green-700 dark:text-green-400" : "text-zinc-900 dark:text-zinc-100"}`}>
+                        {ex.name}
+                      </h3>
+                      {def && (
+                        <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                          {muscleGroupLabels[def.muscleGroup]} &middot; {def.equipment}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-shrink-0 items-center gap-0.5">
+                      <button
+                        onClick={() => moveExercise(idx, "up")}
+                        disabled={idx === 0}
+                        className="rounded p-1 text-zinc-400 hover:text-zinc-600 disabled:opacity-30 dark:hover:text-zinc-300"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 15l-6-6-6 6" /></svg>
+                      </button>
+                      <button
+                        onClick={() => moveExercise(idx, "down")}
+                        disabled={idx === activeExercises.length - 1}
+                        className="rounded p-1 text-zinc-400 hover:text-zinc-600 disabled:opacity-30 dark:hover:text-zinc-300"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6" /></svg>
+                      </button>
+                      <button
+                        onClick={() => setEditIdx(isEditing ? null : idx)}
+                        className="rounded-lg p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-2 flex items-center gap-4">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-zinc-400">Sets</span>
+                      <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">{ex.sets}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-zinc-400">Reps</span>
+                      <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">{ex.reps}</span>
+                    </div>
+                    {ex.weight && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-zinc-400">Gewicht</span>
+                        <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{ex.weight} kg</span>
+                      </div>
                     )}
                   </div>
-                  <button
-                    onClick={() => setEditIdx(isEditing ? null : idx)}
-                    className="flex-shrink-0 rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                  </button>
-                </div>
 
-                <div className="mt-2 flex items-center gap-4">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-zinc-400">Sets</span>
-                    <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">{ex.sets}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-zinc-400">Reps</span>
-                    <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">{ex.reps}</span>
-                  </div>
-                  {ex.weight && (
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-zinc-400">Gewicht</span>
-                      <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{ex.weight} kg</span>
-                    </div>
-                  )}
-                </div>
-
-                {isEditing && (
-                  <div className="mt-3 flex flex-col gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
-                    <div className="flex gap-3">
-                      <div className="flex-1">
-                        <label className="mb-1 block text-xs text-zinc-400">Sets</label>
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => updateSets(idx, ex.sets - 1)} className="rounded-lg border border-zinc-200 px-2.5 py-1 text-sm dark:border-zinc-700">-</button>
-                          <span className="w-8 text-center text-sm font-semibold">{ex.sets}</span>
-                          <button onClick={() => updateSets(idx, ex.sets + 1)} className="rounded-lg border border-zinc-200 px-2.5 py-1 text-sm dark:border-zinc-700">+</button>
+                  {isEditing && (
+                    <div className="mt-3 flex flex-col gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+                      <div className="flex gap-3">
+                        <div className="flex-1">
+                          <label className="mb-1 block text-xs text-zinc-400">Sets</label>
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => updateSets(idx, ex.sets - 1)} className="rounded-lg border border-zinc-200 px-2.5 py-1 text-sm dark:border-zinc-700">-</button>
+                            <span className="w-8 text-center text-sm font-semibold">{ex.sets}</span>
+                            <button onClick={() => updateSets(idx, ex.sets + 1)} className="rounded-lg border border-zinc-200 px-2.5 py-1 text-sm dark:border-zinc-700">+</button>
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <label className="mb-1 block text-xs text-zinc-400">Reps</label>
+                          <input
+                            type="text"
+                            value={ex.reps}
+                            onChange={(e) => updateReps(idx, e.target.value)}
+                            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                          />
                         </div>
                       </div>
-                      <div className="flex-1">
-                        <label className="mb-1 block text-xs text-zinc-400">Reps</label>
+                      <div>
+                        <label className="mb-1 block text-xs text-zinc-400">Gewicht (kg)</label>
                         <input
                           type="text"
-                          value={ex.reps}
-                          onChange={(e) => updateReps(idx, e.target.value)}
+                          inputMode="decimal"
+                          value={ex.weight}
+                          onChange={(e) => updateWeight(idx, e.target.value)}
                           className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                          placeholder="bv. 55"
                         />
                       </div>
                     </div>
-                    <div>
-                      <label className="mb-1 block text-xs text-zinc-400">Gewicht (kg)</label>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={ex.weight}
-                        onChange={(e) => updateWeight(idx, e.target.value)}
-                        className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-                        placeholder="bv. 55"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              </SwipeableCard>
             );
           })}
         </div>
+
+        <button
+          onClick={() => setShowPicker(true)}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-white py-3 text-sm font-medium text-zinc-500 transition-all hover:border-amber-400 hover:text-amber-600 active:scale-[0.98] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-amber-600 dark:hover:text-amber-400"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 5v14" /><path d="M5 12h14" />
+          </svg>
+          Oefening toevoegen
+        </button>
       </section>
 
       <button
@@ -383,6 +529,78 @@ export default function GymTrainingPage() {
       >
         {allDone ? "Training voltooien" : `${activeExercises.filter((e) => e.done).length}/${activeExercises.length} klaar`}
       </button>
+
+      {showPicker && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-zinc-950">
+          <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+            <h2 className="text-lg font-bold">Kies oefening</h2>
+            <button onClick={() => setShowPicker(false)} className="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+            </button>
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto border-b border-zinc-100 px-4 py-2 dark:border-zinc-800">
+            <button
+              onClick={() => setFilterGroup("all")}
+              className={`flex-shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                filterGroup === "all"
+                  ? "bg-amber-500 text-white"
+                  : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+              }`}
+            >
+              Alles
+            </button>
+            {allMuscleGroups.map((mg) => (
+              <button
+                key={mg}
+                onClick={() => setFilterGroup(mg)}
+                className={`flex-shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                  filterGroup === mg
+                    ? "bg-amber-500 text-white"
+                    : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+                }`}
+              >
+                {muscleGroupLabels[mg]}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-4 py-2">
+            {filteredExercises.map((exercise) => {
+              const isSelected = alreadySelected.has(exercise.id);
+              return (
+                <button
+                  key={exercise.id}
+                  onClick={() => !isSelected && addExercise(exercise)}
+                  disabled={isSelected}
+                  className={`flex w-full items-center gap-3 border-b border-zinc-50 px-2 py-3 text-left transition-colors dark:border-zinc-900 ${
+                    isSelected
+                      ? "opacity-40"
+                      : "hover:bg-zinc-50 active:bg-zinc-100 dark:hover:bg-zinc-900"
+                  }`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{exercise.name}</p>
+                    <p className="text-xs text-zinc-400">
+                      {muscleGroupLabels[exercise.muscleGroup]} &middot; {exercise.equipment}
+                      {exercise.ynzoWeight && <> &middot; ~{exercise.ynzoWeight} kg</>}
+                    </p>
+                  </div>
+                  {isSelected ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-green-500">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-zinc-300 dark:text-zinc-600">
+                      <path d="M12 5v14" /><path d="M5 12h14" />
+                    </svg>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
