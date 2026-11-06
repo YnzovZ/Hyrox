@@ -215,7 +215,12 @@ export default function Home() {
               completed={completed.some((c) => c.workoutId === workout.id)}
               swapped={swapped.find((s) => s.workoutId === workout.id) ?? null}
               onClick={() => {
-                window.location.href = `/workout/${workout.id}`;
+                const swap = swapped.find((s) => s.workoutId === workout.id);
+                if (swap?.gymTrainingId) {
+                  window.location.href = `/gym/training/${swap.gymTrainingId}`;
+                } else {
+                  window.location.href = `/workout/${workout.id}`;
+                }
               }}
               onSwap={() => handleSwapAction(workout)}
             />
@@ -224,7 +229,13 @@ export default function Home() {
           {customWorkouts.map((cw) => (
             <button
               key={cw.id}
-              onClick={() => setEditTarget(cw)}
+              onClick={() => {
+                if (cw.gymTrainingId) {
+                  window.location.href = `/gym/training/${cw.gymTrainingId}`;
+                } else {
+                  setEditTarget(cw);
+                }
+              }}
               className="w-full rounded-xl border border-green-200 bg-green-50/50 p-4 text-left transition-colors hover:border-green-300 active:scale-[0.98] dark:border-green-900 dark:bg-green-950/20 dark:hover:border-green-800"
             >
               <div className="flex items-start justify-between gap-3">

@@ -19,6 +19,7 @@ export interface SwappedWorkout {
   description: string;
   distance?: string;
   time?: string;
+  gymTrainingId?: string;
   completedAt: string;
 }
 
@@ -29,6 +30,7 @@ export interface CustomWorkout {
   description: string;
   distance?: string;
   time?: string;
+  gymTrainingId?: string;
   completedAt: string;
 }
 

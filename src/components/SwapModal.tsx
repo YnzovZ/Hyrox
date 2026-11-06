@@ -1,8 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Workout } from "@/lib/data";
-import { SwappedWorkout, saveSwappedWorkout, markWorkoutComplete } from "@/lib/storage";
+import {
+  SwappedWorkout,
+  saveSwappedWorkout,
+  markWorkoutComplete,
+  getGymTrainings,
+  type SavedGymTraining,
+} from "@/lib/storage";
+import { presetTrainings, muscleGroupLabels } from "@/lib/gym-data";
 
 const swapTypes = [
   { value: "run" as const, label: "Run", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
@@ -22,6 +29,11 @@ export default function SwapModal({ workout, onClose, onSaved }: SwapModalProps)
   const [description, setDescription] = useState("");
   const [distance, setDistance] = useState("");
   const [time, setTime] = useState("");
+  const [customGymTrainings, setCustomGymTrainings] = useState<SavedGymTraining[]>([]);
+
+  useEffect(() => {
+    setCustomGymTrainings(getGymTrainings());
+  }, []);
 
   function handleSave() {
     if (!description.trim()) return;
@@ -42,13 +54,34 @@ export default function SwapModal({ workout, onClose, onSaved }: SwapModalProps)
     onSaved();
   }
 
+  function handleGymSelect(gymId: string, gymName: string) {
+    const swap: SwappedWorkout = {
+      workoutId: workout.id,
+      type: "strength",
+      description: gymName,
+      gymTrainingId: gymId,
+      completedAt: new Date().toISOString(),
+    };
+    saveSwappedWorkout(swap);
+    markWorkoutComplete({
+      workoutId: workout.id,
+      completedAt: swap.completedAt,
+      notes: `Vervangen door gym training: ${gymName}`,
+    });
+    onSaved();
+  }
+
+  function handleBuildNew() {
+    window.location.href = `/gym/builder?returnAction=swap&returnWorkoutId=${encodeURIComponent(workout.id)}`;
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md animate-[fadeIn_0.2s_ease-out] rounded-2xl bg-white px-5 pb-6 pt-5 shadow-xl dark:bg-zinc-900"
+        className="max-h-[90vh] w-full max-w-md animate-[fadeIn_0.2s_ease-out] overflow-y-auto rounded-2xl bg-white px-5 pb-6 pt-5 shadow-xl dark:bg-zinc-900"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -88,6 +121,64 @@ export default function SwapModal({ workout, onClose, onSaved }: SwapModalProps)
           </div>
         </div>
 
+        {type === "strength" && (
+          <div className="mb-4">
+            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Kies een gym training
+            </label>
+            <div className="max-h-52 overflow-y-auto rounded-xl border border-zinc-200 dark:border-zinc-700">
+              {presetTrainings.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => handleGymSelect(t.id, t.name)}
+                  className="flex w-full items-center gap-3 border-b border-zinc-100 px-3 py-2.5 text-left transition-colors last:border-b-0 hover:bg-zinc-50 active:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-800"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.name}</p>
+                    <p className="text-xs text-zinc-400">
+                      {t.exercises.length} oefeningen &middot;{" "}
+                      {t.muscleGroups.map((mg) => muscleGroupLabels[mg]).join(", ")}
+                    </p>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0 text-zinc-300 dark:text-zinc-600">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </button>
+              ))}
+              {customGymTrainings.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => handleGymSelect(`custom-${t.id}`, t.name)}
+                  className="flex w-full items-center gap-3 border-b border-zinc-100 px-3 py-2.5 text-left transition-colors last:border-b-0 hover:bg-zinc-50 active:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-800"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.name}</p>
+                    <p className="text-xs text-zinc-400">{t.exercises.length} oefeningen</p>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0 text-zinc-300 dark:text-zinc-600">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={handleBuildNew}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 py-2.5 text-sm font-medium text-zinc-500 transition-all hover:border-amber-400 hover:text-amber-600 active:scale-[0.98] dark:border-zinc-700 dark:text-zinc-400"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 5v14" /><path d="M5 12h14" />
+              </svg>
+              Bouw nieuwe training
+            </button>
+
+            <div className="my-4 flex items-center gap-3">
+              <div className="flex-1 border-t border-zinc-200 dark:border-zinc-700" />
+              <span className="text-xs text-zinc-400">of beschrijf zelf</span>
+              <div className="flex-1 border-t border-zinc-200 dark:border-zinc-700" />
+            </div>
+          </div>
+        )}
+
         <div className="mb-3">
           <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
             Omschrijving
@@ -98,7 +189,7 @@ export default function SwapModal({ workout, onClose, onSaved }: SwapModalProps)
             onChange={(e) => setDescription(e.target.value)}
             placeholder={type === "run" ? "bv. Buitenrun park" : type === "strength" ? "bv. Gym sessie" : "bv. CrossFit class"}
             className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-base text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-            autoFocus
+            autoFocus={type !== "strength"}
           />
         </div>
 

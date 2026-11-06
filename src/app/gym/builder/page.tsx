@@ -11,7 +11,14 @@ import {
   type GymExercise,
   type GymTrainingExercise,
 } from "@/lib/gym-data";
-import { saveGymTraining, getGymTrainings, type SavedGymTraining } from "@/lib/storage";
+import {
+  saveGymTraining,
+  getGymTrainings,
+  saveSwappedWorkout,
+  saveCustomWorkout,
+  markWorkoutComplete,
+  type SavedGymTraining,
+} from "@/lib/storage";
 
 const muscleGroups: MuscleGroup[] = ["chest", "back", "shoulders", "biceps", "triceps", "legs", "core"];
 
@@ -35,6 +42,9 @@ function GymBuilderContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
+  const returnAction = searchParams.get("returnAction");
+  const returnWorkoutId = searchParams.get("returnWorkoutId");
+  const returnWeek = searchParams.get("returnWeek");
 
   const [name, setName] = useState("");
   const [selectedExercises, setSelectedExercises] = useState<GymTrainingExercise[]>([]);
@@ -94,6 +104,40 @@ function GymBuilderContent() {
     };
 
     saveGymTraining(training);
+
+    const gymId = `custom-${training.id}`;
+
+    if (returnAction === "swap" && returnWorkoutId) {
+      const now = new Date().toISOString();
+      saveSwappedWorkout({
+        workoutId: returnWorkoutId,
+        type: "strength",
+        description: training.name,
+        gymTrainingId: gymId,
+        completedAt: now,
+      });
+      markWorkoutComplete({
+        workoutId: returnWorkoutId,
+        completedAt: now,
+        notes: `Vervangen door gym training: ${training.name}`,
+      });
+      router.push("/");
+      return;
+    }
+
+    if (returnAction === "add" && returnWeek) {
+      saveCustomWorkout({
+        id: `custom_${Date.now()}`,
+        week: parseInt(returnWeek, 10),
+        type: "strength",
+        description: training.name,
+        gymTrainingId: gymId,
+        completedAt: new Date().toISOString(),
+      });
+      router.push("/");
+      return;
+    }
+
     router.push("/gym");
   }
 
@@ -116,7 +160,7 @@ function GymBuilderContent() {
   return (
     <main className="mx-auto max-w-lg px-4 pt-8 pb-12">
       <div className="mb-6 flex items-center gap-3">
-        <button onClick={() => router.push("/gym")} className="rounded-lg p-1.5 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800">
+        <button onClick={() => router.push(returnAction ? "/" : "/gym")} className="rounded-lg p-1.5 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 18l-6-6 6-6" />
           </svg>
