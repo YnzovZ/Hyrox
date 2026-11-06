@@ -106,11 +106,15 @@ export default function Home() {
     <main className="mx-auto max-w-lg px-4 pt-8 pb-12">
       <header className="mb-8">
         <div className="mb-1 flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500 text-lg font-bold text-white">
-            H
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500">
+            <svg width="22" height="28" viewBox="0 0 60 76" fill="none">
+              <path d="M20 28C20 8 40 8 40 28" stroke="white" strokeWidth="6" strokeLinecap="round" fill="none"/>
+              <rect x="14" y="26" width="32" height="8" rx="2" fill="white"/>
+              <ellipse cx="30" cy="54" rx="24" ry="22" fill="white"/>
+            </svg>
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Beast Mode Veer en Yns</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Gym</h1>
             <p className="text-base text-zinc-500 dark:text-zinc-400">18-weken plan</p>
           </div>
         </div>

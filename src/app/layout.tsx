@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Beast Mode Veer en Yns",
+  title: "Gym",
   description: "Je persoonlijke 18-weken Hyrox trainingsplan. Van basis tot race day.",
   manifest: "/manifest.json",
   icons: {

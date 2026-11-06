@@ -1,7 +1,7 @@
 {
-  "name": "Beast Mode Veer en Yns",
-  "short_name": "Beast Mode",
-  "description": "19-weken Hyrox trainingsplan voor Veer en Yns",
+  "name": "Gym",
+  "short_name": "Gym",
+  "description": "18-weken Hyrox trainingsplan voor Veer en Yns",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#fafaf9",
