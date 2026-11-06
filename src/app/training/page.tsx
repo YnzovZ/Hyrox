@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { generateTrainingPlan, weekPhases, dayNames, getWeekDateRange, Workout } from "@/lib/data";
 import { getCurrentWeek, setCurrentWeek as saveCurrentWeek, getCompletedWorkouts, CompletedWorkout, getSwappedWorkouts, SwappedWorkout, getCustomWorkoutsForWeek, CustomWorkout, removeSwappedWorkout, removeCompletedWorkout, removeExerciseProgress } from "@/lib/storage";
 import WorkoutCard from "@/components/WorkoutCard";
@@ -32,6 +32,7 @@ export default function TrainingPage() {
   const [undoTarget, setUndoTarget] = useState<Workout | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editTarget, setEditTarget] = useState<CustomWorkout | null>(null);
+  const activeWeekRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -50,6 +51,12 @@ export default function TrainingPage() {
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
+
+  useEffect(() => {
+    if (mounted && activeWeekRef.current) {
+      activeWeekRef.current.scrollIntoView({ inline: "start", block: "nearest" });
+    }
+  }, [mounted]);
 
   const workouts = generateTrainingPlan();
 
@@ -119,6 +126,7 @@ export default function TrainingPage() {
           return (
             <button
               key={week}
+              ref={isActive ? activeWeekRef : undefined}
               onClick={() => handleWeekChange(week)}
               className={`flex min-w-[72px] flex-shrink-0 flex-col items-center rounded-xl px-3 py-2.5 text-center transition-all ${
                 isActive
