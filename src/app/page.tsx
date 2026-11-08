@@ -2,12 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { generateTrainingPlan, weekPhases, getWeekDateRange, getWorkoutDate, getDaysUntilRaceDay, formatWorkoutDate, RACE_DAY, Workout } from "@/lib/data";
-import { getCalendarWeek, getCompletedWorkouts, CompletedWorkout, getSwappedWorkouts, SwappedWorkout, getCustomWorkoutsForWeek, CustomWorkout, removeSwappedWorkout, removeCompletedWorkout, removeExerciseProgress, getGymSessions, type CompletedGymSession } from "@/lib/storage";
-import WorkoutCard from "@/components/WorkoutCard";
-import SwapModal from "@/components/SwapModal";
-import AddWorkoutModal from "@/components/AddWorkoutModal";
-import ConfirmModal from "@/components/ConfirmModal";
+import { generateTrainingPlan, weekPhases, getWeekDateRange, getWorkoutDate, getDaysUntilRaceDay, formatWorkoutDate, RACE_DAY } from "@/lib/data";
+import { getCalendarWeek, getCompletedWorkouts, getSwappedWorkouts, getCustomWorkoutsForWeek, getRecentGymSessions, type CompletedGymSession } from "@/lib/storage";
 
 const typeColors: Record<string, string> = {
   run: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
@@ -25,86 +21,40 @@ const typeLabels: Record<string, string> = {
 
 export default function Home() {
   const [currentWeek, setCurrentWeek] = useState(1);
-  const [completed, setCompleted] = useState<CompletedWorkout[]>([]);
-  const [swapped, setSwapped] = useState<SwappedWorkout[]>([]);
-  const [customWorkouts, setCustomWorkouts] = useState<CustomWorkout[]>([]);
+  const [weekCompleted, setWeekCompleted] = useState(0);
+  const [weekTotal, setWeekTotal] = useState(0);
+  const [completedCount, setCompletedCount] = useState(0);
+  const [totalWorkouts, setTotalWorkouts] = useState(0);
+  const [recentSessions, setRecentSessions] = useState<CompletedGymSession[]>([]);
   const [mounted, setMounted] = useState(false);
-  const [swapTarget, setSwapTarget] = useState<Workout | null>(null);
-  const [undoTarget, setUndoTarget] = useState<Workout | null>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editTarget, setEditTarget] = useState<CustomWorkout | null>(null);
-  const [gymSessions, setGymSessions] = useState<CompletedGymSession[]>([]);
 
   useEffect(() => {
     setMounted(true);
     const week = getCalendarWeek();
     setCurrentWeek(week);
-    setCompleted(getCompletedWorkouts());
-    setSwapped(getSwappedWorkouts());
-    setCustomWorkouts(getCustomWorkoutsForWeek(week));
-    setGymSessions(getGymSessions());
+
+    const workouts = generateTrainingPlan();
+    const completed = getCompletedWorkouts();
+    const customWorkouts = getCustomWorkoutsForWeek(week);
+    const weekWorkouts = workouts.filter((w) => w.week === week);
+
+    setWeekCompleted(
+      weekWorkouts.filter((w) => completed.some((c) => c.workoutId === w.id)).length + customWorkouts.length
+    );
+    setWeekTotal(weekWorkouts.length + customWorkouts.length);
+    setCompletedCount(completed.length);
+    setTotalWorkouts(workouts.length);
+    setRecentSessions(getRecentGymSessions(3));
   }, []);
 
-  function refreshState() {
-    setCompleted(getCompletedWorkouts());
-    setSwapped(getSwappedWorkouts());
-    setCustomWorkouts(getCustomWorkoutsForWeek(currentWeek));
-    setGymSessions(getGymSessions());
-  }
-
-  function findMatchingSession(gymTrainingId?: string, name?: string): CompletedGymSession | null {
-    if (!gymSessions.length) return null;
-    const sorted = [...gymSessions].sort(
-      (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
-    );
-    if (gymTrainingId) {
-      const searchId = gymTrainingId.startsWith("custom-")
-        ? gymTrainingId.slice(7)
-        : gymTrainingId;
-      const match = sorted.find((s) => s.trainingId === searchId);
-      if (match) return match;
-    }
-    if (name) {
-      const lower = name.toLowerCase();
-      const match = sorted.find((s) => s.trainingName.toLowerCase() === lower);
-      if (match) return match;
-    }
-    return null;
-  }
-
-  function handleSwapAction(workout: Workout) {
-    const isSwapped = swapped.some((s) => s.workoutId === workout.id);
-    if (isSwapped) {
-      setUndoTarget(workout);
-    } else {
-      setSwapTarget(workout);
-    }
-  }
-
-  function handleUndoSwap() {
-    if (!undoTarget) return;
-    removeSwappedWorkout(undoTarget.id);
-    removeCompletedWorkout(undoTarget.id);
-    removeExerciseProgress(undoTarget.id);
-    setUndoTarget(null);
-    refreshState();
-  }
-
   const workouts = generateTrainingPlan();
-  const weekWorkouts = workouts.filter((w) => w.week === currentWeek);
-  const totalWorkouts = workouts.length;
-  const completedCount = completed.length;
-  const weekCompleted = weekWorkouts.filter((w) =>
-    completed.some((c) => c.workoutId === w.id)
-  ).length + customWorkouts.length;
-  const weekTotal = weekWorkouts.length + customWorkouts.length;
-
   const progress = totalWorkouts > 0 ? (completedCount / totalWorkouts) * 100 : 0;
   const daysUntilRace = getDaysUntilRaceDay();
   const weeksUntilRace = Math.floor(daysUntilRace / 7);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const completed = mounted ? getCompletedWorkouts() : [];
   const upcomingWorkouts = workouts
     .filter((w) => {
       const wDate = getWorkoutDate(w.week, w.day);
@@ -196,9 +146,9 @@ export default function Home() {
                   const wDate = getWorkoutDate(w.week, w.day);
                   const isToday = wDate.getTime() === today.getTime();
                   return (
-                    <button
+                    <Link
                       key={w.id}
-                      onClick={() => { window.location.href = `/workout/${w.id}`; }}
+                      href={`/workout/${w.id}`}
                       className="flex items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-zinc-50 active:scale-[0.98] dark:hover:bg-zinc-800"
                     >
                       <span className={`w-16 text-sm font-medium ${isToday ? "text-amber-600 dark:text-amber-400" : "text-zinc-400 dark:text-zinc-500"}`}>
@@ -213,7 +163,7 @@ export default function Home() {
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-zinc-300 dark:text-zinc-600">
                         <path d="M9 18l6-6-6-6" />
                       </svg>
-                    </button>
+                    </Link>
                   );
                 })}
               </div>
@@ -223,159 +173,98 @@ export default function Home() {
       </section>
 
       <section className="mb-6">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-            Deze week
-          </h2>
-          <Link
-            href="/training"
-            className="text-base font-medium text-amber-600 hover:text-amber-700 dark:text-amber-400"
-          >
-            Alle weken
-          </Link>
-        </div>
-        <div className="flex flex-col gap-3">
-          {weekWorkouts.map((workout) => (
-            <WorkoutCard
-              key={workout.id}
-              workout={workout}
-              completed={completed.some((c) => c.workoutId === workout.id)}
-              swapped={swapped.find((s) => s.workoutId === workout.id) ?? null}
-              onClick={() => {
-                const swap = swapped.find((s) => s.workoutId === workout.id);
-                if (swap?.gymTrainingId) {
-                  const session = findMatchingSession(swap.gymTrainingId, swap.description);
-                  if (session) {
-                    window.location.href = `/gym/session/${session.id}`;
-                  } else {
-                    window.location.href = `/gym/training/${swap.gymTrainingId}`;
-                  }
-                } else {
-                  window.location.href = `/workout/${workout.id}`;
-                }
-              }}
-              onSwap={() => handleSwapAction(workout)}
-            />
-          ))}
-
-          {customWorkouts.map((cw) => (
-            <button
-              key={cw.id}
-              onClick={() => {
-                const session = findMatchingSession(cw.gymTrainingId, cw.description);
-                if (session) {
-                  window.location.href = `/gym/session/${session.id}`;
-                } else if (cw.gymTrainingId) {
-                  window.location.href = `/gym/training/${cw.gymTrainingId}`;
-                } else {
-                  setEditTarget(cw);
-                }
-              }}
-              className="w-full rounded-xl border border-green-200 bg-green-50/50 p-4 text-left transition-colors hover:border-green-300 active:scale-[0.98] dark:border-green-900 dark:bg-green-950/20 dark:hover:border-green-800"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="mb-1.5 flex items-center gap-2">
-                    <span className={`inline-block rounded-full px-2 py-0.5 text-sm font-medium ${typeColors[cw.type]}`}>
-                      {typeLabels[cw.type]}
-                    </span>
-                  </div>
-                  <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                    {cw.description}
-                  </h3>
-                  <div className="mt-0.5 flex gap-3 text-sm text-zinc-500 dark:text-zinc-400">
-                    {cw.distance && <span>{cw.distance}</span>}
-                    {cw.time && <span>{cw.time}</span>}
-                  </div>
-                </div>
-                <span className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
-                  {cw.completedAt && (
-                    <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
-                      {new Date(cw.completedAt).toLocaleDateString("nl-NL", { day: "2-digit", month: "2-digit" }).replace("/", "-")}
-                    </span>
-                  )}
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
-
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-white py-3 text-base font-medium text-zinc-500 transition-all hover:border-amber-400 hover:text-amber-600 active:scale-[0.98] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-amber-600 dark:hover:text-amber-400"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 5v14" />
-            <path d="M5 12h14" />
-          </svg>
-          Training toevoegen
-        </button>
-      </section>
-
-      <section className="mb-6">
         <h2 className="mb-3 text-base font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
           Snel starten
         </h2>
-        <Link
-          href="/gym"
-          className="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white p-4 transition-all hover:border-amber-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-amber-700"
-        >
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-amber-500">
-            <path d="M6.5 6.5h11" />
-            <path d="M6.5 17.5h11" />
-            <rect x="2" y="8.5" width="4" height="7" rx="1" />
-            <rect x="18" y="8.5" width="4" height="7" rx="1" />
-            <path d="M6.5 12h11" />
-          </svg>
-          <div>
-            <span className="text-base font-semibold text-zinc-900 dark:text-zinc-100">Gym training starten</span>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Kies of maak een training</p>
-          </div>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto flex-shrink-0 text-zinc-300 dark:text-zinc-600">
-            <path d="M9 18l6-6-6-6" />
-          </svg>
-        </Link>
+        <div className="flex flex-col gap-3">
+          <Link
+            href="/training"
+            className="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white p-4 transition-all hover:border-amber-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-amber-700"
+          >
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-amber-500">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            <div className="flex-1">
+              <span className="text-base font-semibold text-zinc-900 dark:text-zinc-100">Weekplanning</span>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">Bekijk, plan en pas je trainingen aan</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-sm font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                {weekCompleted}/{weekTotal}
+              </span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-zinc-300 dark:text-zinc-600">
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </div>
+          </Link>
+          <Link
+            href="/gym"
+            className="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white p-4 transition-all hover:border-amber-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-amber-700"
+          >
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-amber-500">
+              <path d="M6.5 6.5h11" />
+              <path d="M6.5 17.5h11" />
+              <rect x="2" y="8.5" width="4" height="7" rx="1" />
+              <rect x="18" y="8.5" width="4" height="7" rx="1" />
+              <path d="M6.5 12h11" />
+            </svg>
+            <div className="flex-1">
+              <span className="text-base font-semibold text-zinc-900 dark:text-zinc-100">Gym training</span>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">Start een kracht- of coach-training</p>
+            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-zinc-300 dark:text-zinc-600">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </Link>
+        </div>
       </section>
 
-      {swapTarget && (
-        <SwapModal
-          workout={swapTarget}
-          onClose={() => setSwapTarget(null)}
-          onSaved={() => {
-            setSwapTarget(null);
-            refreshState();
-          }}
-        />
-      )}
-
-      {undoTarget && (
-        <ConfirmModal
-          title="Verandering ongedaan maken?"
-          message="Training herstellen naar de oorspronkelijke planning?"
-          confirmLabel="Ja"
-          cancelLabel="Annuleer"
-          onConfirm={handleUndoSwap}
-          onCancel={() => setUndoTarget(null)}
-        />
-      )}
-
-      {(showAddModal || editTarget) && (
-        <AddWorkoutModal
-          week={currentWeek}
-          existing={editTarget}
-          onClose={() => {
-            setShowAddModal(false);
-            setEditTarget(null);
-          }}
-          onSaved={() => {
-            setShowAddModal(false);
-            setEditTarget(null);
-            refreshState();
-          }}
-        />
+      {recentSessions.length > 0 && (
+        <section className="mb-6">
+          <h2 className="mb-3 text-base font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+            Recente gym sessies
+          </h2>
+          <div className="flex flex-col gap-2">
+            {recentSessions.map((s) => {
+              const date = new Date(s.completedAt);
+              const isToday = new Date().toDateString() === date.toDateString();
+              const isYesterday = new Date(Date.now() - 86400000).toDateString() === date.toDateString();
+              const dayLabel = isToday
+                ? "Vandaag"
+                : isYesterday
+                  ? "Gisteren"
+                  : date.toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" });
+              const timeLabel = date.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" });
+              return (
+                <Link
+                  key={s.id}
+                  href={`/gym/session/${s.id}`}
+                  className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 transition-all hover:border-zinc-300 hover:shadow-sm active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+                >
+                  <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                      {s.trainingName}
+                    </h3>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      {dayLabel} om {timeLabel} &middot; {s.exercises.length} oefeningen
+                    </p>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-300 dark:text-zinc-600">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
       )}
     </main>
   );
