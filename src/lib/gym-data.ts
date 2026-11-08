@@ -1,4 +1,4 @@
-export type MuscleGroup = "chest" | "back" | "shoulders" | "biceps" | "triceps" | "legs" | "core";
+export type MuscleGroup = "chest" | "back" | "shoulders" | "biceps" | "triceps" | "legs" | "core" | "balance";
 
 export const muscleGroupLabels: Record<MuscleGroup, string> = {
   chest: "Borst",
@@ -8,13 +8,30 @@ export const muscleGroupLabels: Record<MuscleGroup, string> = {
   triceps: "Triceps",
   legs: "Benen",
   core: "Core",
+  balance: "Balans",
+};
+
+export const allMuscleGroups = Object.keys(muscleGroupLabels) as MuscleGroup[];
+
+// Balans telt niet mee voor hersteladvies: die oefeningen mag je elke dag doen
+export const strengthMuscleGroups = allMuscleGroups.filter((g) => g !== "balance");
+
+export const muscleColors: Record<MuscleGroup, string> = {
+  chest: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+  back: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  shoulders: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+  biceps: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+  triceps: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
+  legs: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  core: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300",
+  balance: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
 };
 
 export interface GymExercise {
   id: string;
   name: string;
   muscleGroup: MuscleGroup;
-  equipment: "machine" | "dumbbell" | "barbell" | "cable" | "bodyweight";
+  equipment: "machine" | "dumbbell" | "barbell" | "cable" | "bodyweight" | "bosu";
   defaultSets: number;
   defaultReps: string;
   ynzoWeight?: string;
@@ -82,8 +99,31 @@ export const exerciseLibrary: GymExercise[] = [
   // CORE
   { id: "ab-crunch-mc", name: "Abdominal Crunch Machine", muscleGroup: "core", equipment: "machine", defaultSets: 3, defaultReps: "15", ynzoWeight: "55", veerWeight: undefined },
   { id: "lower-back-mc", name: "Lower Back Machine", muscleGroup: "core", equipment: "machine", defaultSets: 3, defaultReps: "12", ynzoWeight: "50", veerWeight: undefined },
+
+  // BALANS (Bosu, kniestabiliteit)
+  { id: "bosu-single-leg-stand", name: "Bosu Eenbenige Stand", muscleGroup: "balance", equipment: "bosu", defaultSets: 3, defaultReps: "30 sec per been" },
+  { id: "bosu-squat", name: "Bosu Squat", muscleGroup: "balance", equipment: "bosu", defaultSets: 3, defaultReps: "10" },
+  { id: "bosu-split-squat", name: "Bosu Split Squat", muscleGroup: "balance", equipment: "bosu", defaultSets: 3, defaultReps: "8 per been" },
+  { id: "bosu-lateral-step", name: "Bosu Zijwaartse Step-over", muscleGroup: "balance", equipment: "bosu", defaultSets: 3, defaultReps: "10" },
+  { id: "bosu-single-leg-reach", name: "Bosu Eenbenig Reiken", muscleGroup: "balance", equipment: "bosu", defaultSets: 3, defaultReps: "8 per been" },
   { id: "pectoral-element", name: "Pectoral Element", muscleGroup: "chest", equipment: "machine", defaultSets: 3, defaultReps: "12", ynzoWeight: "40", veerWeight: undefined },
 ];
+
+export const bosuReminder = {
+  start: new Date(2026, 10, 8),
+  end: new Date(2026, 11, 20, 23, 59),
+  exerciseIds: ["bosu-single-leg-stand", "bosu-squat", "bosu-split-squat"],
+};
+
+export const bosuExerciseIds = new Set(
+  exerciseLibrary.filter((e) => e.equipment === "bosu").map((e) => e.id)
+);
+
+/** Week 1 t/m 6 van de Bosu-periode, of null als de herinnering niet actief is */
+export function getBosuReminderWeek(now = new Date()): number | null {
+  if (now < bosuReminder.start || now > bosuReminder.end) return null;
+  return Math.floor((now.getTime() - bosuReminder.start.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
+}
 
 export function getExerciseById(id: string): GymExercise | undefined {
   return exerciseLibrary.find((e) => e.id === id);
@@ -388,12 +428,14 @@ function startOfDay(d: Date): number {
 }
 
 function trainedGroups(s: AdviceSession): MuscleGroup[] {
-  if (s.exercises.length === 0) return s.muscleGroups as MuscleGroup[];
+  if (s.exercises.length === 0) {
+    return (s.muscleGroups as MuscleGroup[]).filter((g) => g !== "balance");
+  }
   const groups = new Set<MuscleGroup>();
   for (const ex of s.exercises) {
     if (!ex.done) continue;
     const def = getExerciseById(ex.exerciseId);
-    if (def) groups.add(def.muscleGroup);
+    if (def && def.muscleGroup !== "balance") groups.add(def.muscleGroup);
   }
   return Array.from(groups);
 }
@@ -404,7 +446,7 @@ function skippedGroups(s: AdviceSession): MuscleGroup[] {
   for (const ex of s.exercises) {
     if (ex.done) continue;
     const def = getExerciseById(ex.exerciseId);
-    if (def && !done.has(def.muscleGroup)) skipped.add(def.muscleGroup);
+    if (def && def.muscleGroup !== "balance" && !done.has(def.muscleGroup)) skipped.add(def.muscleGroup);
   }
   return Array.from(skipped);
 }
@@ -489,7 +531,7 @@ export function adviseNextTraining(
     }
   }
 
-  const notRecovered = (Object.keys(muscleGroupLabels) as MuscleGroup[]).filter((g) => !recovered(g));
+  const notRecovered = strengthMuscleGroups.filter((g) => !recovered(g));
   const blocked = best.groups.filter((g) => !recovered(g));
 
   if (blocked.length > 0) {

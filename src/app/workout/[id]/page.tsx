@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { generateTrainingPlan, weekPhases, Workout, exerciseAlternatives, ExerciseAlternative } from "@/lib/data";
+import BosuReminder from "@/components/BosuReminder";
 import { isWorkoutCompleted, markWorkoutComplete, removeCompletedWorkout, removeExerciseProgress, getExerciseWeight, saveExerciseWeight, getExerciseProgress, saveExerciseProgress, getChosenAlternative, saveChosenAlternative } from "@/lib/storage";
 
 function ProgressOverlay({ stage, onTap, hasThumb }: { stage: number; onTap: () => void; hasThumb: boolean }) {
@@ -243,6 +244,8 @@ export default function WorkoutDetailPage() {
           {workout.difficulty === "easy" ? "Makkelijk" : workout.difficulty === "moderate" ? "Gemiddeld" : workout.difficulty === "hard" ? "Zwaar" : "Race"}
         </div>
       </div>
+
+      <BosuReminder />
 
       <section className="mb-8">
         <h2 className="mb-3 text-base font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   exerciseLibrary,
   muscleGroupLabels,
+  allMuscleGroups,
   defaultWarmups,
   getExerciseById,
   activityLabels,
@@ -25,7 +26,6 @@ import {
   type SavedGymTraining,
 } from "@/lib/storage";
 
-const muscleGroups: MuscleGroup[] = ["chest", "back", "shoulders", "biceps", "triceps", "legs", "core"];
 
 
 export default function GymBuilderPage() {
@@ -357,7 +357,7 @@ function GymBuilderContent() {
             >
               Alles
             </button>
-            {muscleGroups.map((mg) => (
+            {allMuscleGroups.map((mg) => (
               <button
                 key={mg}
                 onClick={() => setFilterGroup(mg)}

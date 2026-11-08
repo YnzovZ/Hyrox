@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import BosuReminder from "@/components/BosuReminder";
 import { generateTrainingPlan, weekPhases, getWeekDateRange, getWorkoutDate, getDaysUntilRaceDay, formatWorkoutDate, RACE_DAY } from "@/lib/data";
 import { getCalendarWeek, getCompletedWorkouts, getSwappedWorkouts, getCustomWorkoutsForWeek, getRecentGymSessions, type CompletedGymSession } from "@/lib/storage";
 
@@ -117,6 +118,8 @@ export default function Home() {
           {completedCount} van {totalWorkouts} workouts voltooid
         </p>
       </section>
+
+      <BosuReminder />
 
       <section className="mb-6">
         <div className="mb-3 flex items-center justify-between">

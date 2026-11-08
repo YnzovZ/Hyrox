@@ -8,6 +8,9 @@ import {
   defaultWarmups,
   getExerciseById,
   muscleGroupLabels,
+  allMuscleGroups,
+  bosuReminder,
+  bosuExerciseIds,
   activityLabels,
   activityEmoji,
   describeActivity,
@@ -27,6 +30,7 @@ import {
   getCalendarWeek,
 } from "@/lib/storage";
 import ActivitySheet from "@/components/ActivitySheet";
+import BosuReminder from "@/components/BosuReminder";
 
 interface TrackedActivity {
   activity: SessionActivity;
@@ -42,7 +46,6 @@ interface ActiveExercise {
   done: boolean;
 }
 
-const allMuscleGroups: MuscleGroup[] = ["chest", "back", "shoulders", "biceps", "triceps", "legs", "core"];
 
 const DELETE_BTN_W = 76;
 const DRAG_THRESHOLD = 5;
@@ -327,6 +330,14 @@ export default function GymTrainingPage() {
     setShowPicker(false);
   }
 
+  function addBosuExercises() {
+    const present = new Set(activeExercises.map((e) => e.exerciseId));
+    for (const id of bosuReminder.exerciseIds) {
+      const def = getExerciseById(id);
+      if (def && !present.has(id)) addExercise(def);
+    }
+  }
+
   // --- Drag-to-reorder logic ---
 
   function cacheItemPositions() {
@@ -597,6 +608,11 @@ export default function GymTrainingPage() {
           </button>
         </div>
       </section>
+
+      <BosuReminder
+        onAdd={addBosuExercises}
+        added={activeExercises.some((e) => bosuExerciseIds.has(e.exerciseId))}
+      />
 
       <section className="mb-6">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">

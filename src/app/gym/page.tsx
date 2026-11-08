@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import BosuReminder from "@/components/BosuReminder";
 import {
   presetTrainings,
   adviseNextTraining,
   trainingDayOptions,
   getCoachTip,
   muscleGroupLabels,
+  muscleColors,
   type MuscleGroup,
   type GymTrainingTemplate,
 } from "@/lib/gym-data";
@@ -21,16 +23,6 @@ import {
   type SavedGymTraining,
   type CompletedGymSession,
 } from "@/lib/storage";
-
-const muscleColors: Record<MuscleGroup, string> = {
-  chest: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
-  back: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  shoulders: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-  biceps: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
-  triceps: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
-  legs: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-  core: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300",
-};
 
 export default function GymPage() {
   const [customTrainings, setCustomTrainings] = useState<SavedGymTraining[]>([]);
@@ -101,6 +93,8 @@ export default function GymPage() {
           <path d="M9 18l6-6-6-6" />
         </svg>
       </Link>
+
+      <BosuReminder />
 
       {coachTip && (
         <div className="mb-6 flex gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
