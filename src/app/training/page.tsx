@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { generateTrainingPlan, weekPhases, dayNames, getWeekDateRange, Workout } from "@/lib/data";
-import { getCalendarWeek, setCurrentWeek as saveCurrentWeek, getCompletedWorkouts, CompletedWorkout, getSwappedWorkouts, SwappedWorkout, getCustomWorkoutsForWeek, CustomWorkout, removeSwappedWorkout, removeCompletedWorkout, removeExerciseProgress } from "@/lib/storage";
+import { getCalendarWeek, setCurrentWeek as saveCurrentWeek, getCompletedWorkouts, CompletedWorkout, getSwappedWorkouts, SwappedWorkout, getCustomWorkoutsForWeek, CustomWorkout, removeSwappedWorkout, removeCompletedWorkout, removeExerciseProgress, getGymSessions, type CompletedGymSession } from "@/lib/storage";
 import WorkoutCard from "@/components/WorkoutCard";
 import SwapModal from "@/components/SwapModal";
 import AddWorkoutModal from "@/components/AddWorkoutModal";
@@ -32,6 +32,7 @@ export default function TrainingPage() {
   const [undoTarget, setUndoTarget] = useState<Workout | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editTarget, setEditTarget] = useState<CustomWorkout | null>(null);
+  const [gymSessions, setGymSessions] = useState<CompletedGymSession[]>([]);
   const activeWeekRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -41,6 +42,7 @@ export default function TrainingPage() {
     setCompleted(getCompletedWorkouts());
     setSwapped(getSwappedWorkouts());
     setCustomWorkouts(getCustomWorkoutsForWeek(week));
+    setGymSessions(getGymSessions());
 
     function handleVisibility() {
       if (document.visibilityState === "visible") {
@@ -70,6 +72,27 @@ export default function TrainingPage() {
     setCompleted(getCompletedWorkouts());
     setSwapped(getSwappedWorkouts());
     setCustomWorkouts(getCustomWorkoutsForWeek(activeWeek));
+    setGymSessions(getGymSessions());
+  }
+
+  function findMatchingSession(gymTrainingId?: string, name?: string): CompletedGymSession | null {
+    if (!gymSessions.length) return null;
+    const sorted = [...gymSessions].sort(
+      (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
+    );
+    if (gymTrainingId) {
+      const searchId = gymTrainingId.startsWith("custom-")
+        ? gymTrainingId.slice(7)
+        : gymTrainingId;
+      const match = sorted.find((s) => s.trainingId === searchId);
+      if (match) return match;
+    }
+    if (name) {
+      const lower = name.toLowerCase();
+      const match = sorted.find((s) => s.trainingName.toLowerCase() === lower);
+      if (match) return match;
+    }
+    return null;
   }
 
   function handleSwapAction(workout: Workout) {
@@ -173,6 +196,16 @@ export default function TrainingPage() {
               completedAt={completed.find((c) => c.workoutId === workout.id)?.completedAt}
               swapped={swapped.find((s) => s.workoutId === workout.id) ?? null}
               onClick={() => {
+                const swap = swapped.find((s) => s.workoutId === workout.id);
+                if (swap?.gymTrainingId) {
+                  const session = findMatchingSession(swap.gymTrainingId, swap.description);
+                  if (session) {
+                    window.location.href = `/gym/session/${session.id}`;
+                    return;
+                  }
+                  window.location.href = `/gym/training/${swap.gymTrainingId}`;
+                  return;
+                }
                 window.location.href = `/workout/${workout.id}`;
               }}
               onSwap={() => handleSwapAction(workout)}
@@ -186,7 +219,16 @@ export default function TrainingPage() {
               Extra training
             </div>
             <button
-              onClick={() => setEditTarget(cw)}
+              onClick={() => {
+                const session = findMatchingSession(cw.gymTrainingId, cw.description);
+                if (session) {
+                  window.location.href = `/gym/session/${session.id}`;
+                } else if (cw.gymTrainingId) {
+                  window.location.href = `/gym/training/${cw.gymTrainingId}`;
+                } else {
+                  setEditTarget(cw);
+                }
+              }}
               className="w-full rounded-xl border border-green-200 bg-green-50/50 p-4 text-left transition-colors hover:border-green-300 active:scale-[0.98] dark:border-green-900 dark:bg-green-950/20 dark:hover:border-green-800"
             >
               <div className="flex items-start justify-between gap-3">
