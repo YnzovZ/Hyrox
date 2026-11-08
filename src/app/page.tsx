@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { generateTrainingPlan, weekPhases, getWeekDateRange, getWorkoutDate, getDaysUntilRaceDay, formatWorkoutDate, RACE_DAY, Workout } from "@/lib/data";
-import { getCalendarWeek, getCompletedWorkouts, CompletedWorkout, getSwappedWorkouts, SwappedWorkout, getCustomWorkoutsForWeek, CustomWorkout, removeSwappedWorkout, removeCompletedWorkout, removeExerciseProgress } from "@/lib/storage";
+import { getCalendarWeek, getCompletedWorkouts, CompletedWorkout, getSwappedWorkouts, SwappedWorkout, getCustomWorkoutsForWeek, CustomWorkout, removeSwappedWorkout, removeCompletedWorkout, removeExerciseProgress, getGymSessions, type CompletedGymSession } from "@/lib/storage";
 import WorkoutCard from "@/components/WorkoutCard";
 import SwapModal from "@/components/SwapModal";
 import AddWorkoutModal from "@/components/AddWorkoutModal";
@@ -33,6 +33,7 @@ export default function Home() {
   const [undoTarget, setUndoTarget] = useState<Workout | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editTarget, setEditTarget] = useState<CustomWorkout | null>(null);
+  const [gymSessions, setGymSessions] = useState<CompletedGymSession[]>([]);
 
   useEffect(() => {
     setMounted(true);
@@ -41,12 +42,34 @@ export default function Home() {
     setCompleted(getCompletedWorkouts());
     setSwapped(getSwappedWorkouts());
     setCustomWorkouts(getCustomWorkoutsForWeek(week));
+    setGymSessions(getGymSessions());
   }, []);
 
   function refreshState() {
     setCompleted(getCompletedWorkouts());
     setSwapped(getSwappedWorkouts());
     setCustomWorkouts(getCustomWorkoutsForWeek(currentWeek));
+    setGymSessions(getGymSessions());
+  }
+
+  function findMatchingSession(gymTrainingId?: string, name?: string): CompletedGymSession | null {
+    if (!gymSessions.length) return null;
+    const sorted = [...gymSessions].sort(
+      (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
+    );
+    if (gymTrainingId) {
+      const searchId = gymTrainingId.startsWith("custom-")
+        ? gymTrainingId.slice(7)
+        : gymTrainingId;
+      const match = sorted.find((s) => s.trainingId === searchId);
+      if (match) return match;
+    }
+    if (name) {
+      const lower = name.toLowerCase();
+      const match = sorted.find((s) => s.trainingName.toLowerCase() === lower);
+      if (match) return match;
+    }
+    return null;
   }
 
   function handleSwapAction(workout: Workout) {
@@ -221,7 +244,12 @@ export default function Home() {
               onClick={() => {
                 const swap = swapped.find((s) => s.workoutId === workout.id);
                 if (swap?.gymTrainingId) {
-                  window.location.href = `/gym/training/${swap.gymTrainingId}`;
+                  const session = findMatchingSession(swap.gymTrainingId, swap.description);
+                  if (session) {
+                    window.location.href = `/gym/session/${session.id}`;
+                  } else {
+                    window.location.href = `/gym/training/${swap.gymTrainingId}`;
+                  }
                 } else {
                   window.location.href = `/workout/${workout.id}`;
                 }
@@ -234,7 +262,10 @@ export default function Home() {
             <button
               key={cw.id}
               onClick={() => {
-                if (cw.gymTrainingId) {
+                const session = findMatchingSession(cw.gymTrainingId, cw.description);
+                if (session) {
+                  window.location.href = `/gym/session/${session.id}`;
+                } else if (cw.gymTrainingId) {
                   window.location.href = `/gym/training/${cw.gymTrainingId}`;
                 } else {
                   setEditTarget(cw);
