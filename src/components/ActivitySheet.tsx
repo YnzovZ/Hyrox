@@ -24,8 +24,14 @@ export default function ActivitySheet({ initial, onSave, onDelete, onClose }: Ac
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-900" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-full w-full max-w-sm overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-900"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 className="mb-4 text-lg font-bold text-zinc-900 dark:text-zinc-100">
           {initial ? "Activiteit aanpassen" : "Activiteit toevoegen"}
         </h3>

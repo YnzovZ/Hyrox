@@ -7,7 +7,7 @@ function StationDetail({ station, onClose }: { station: Station; onClose: () => 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center" onClick={onClose}>
       <div
-        className="animate-fade-in w-full max-w-lg rounded-t-2xl bg-white p-6 sm:rounded-2xl dark:bg-zinc-900"
+        className="animate-fade-in w-full max-w-lg rounded-t-2xl bg-white p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:rounded-2xl dark:bg-zinc-900"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between">
