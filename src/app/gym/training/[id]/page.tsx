@@ -448,6 +448,7 @@ export default function GymTrainingPage() {
       completedAt: new Date().toISOString(),
       week,
       muscleGroups: Array.from(currentMuscleGroups),
+      warmupActivities: training.warmupActivities.length > 0 ? training.warmupActivities : undefined,
       exercises: activeExercises.map((ex) => ({
         exerciseId: ex.exerciseId,
         weight: ex.weight,

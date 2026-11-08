@@ -16,6 +16,7 @@ import {
   getLastStrengthDate,
   deleteGymTraining,
   type SavedGymTraining,
+  type CompletedGymSession,
 } from "@/lib/storage";
 
 const muscleColors: Record<MuscleGroup, string> = {
@@ -30,6 +31,7 @@ const muscleColors: Record<MuscleGroup, string> = {
 
 export default function GymPage() {
   const [customTrainings, setCustomTrainings] = useState<SavedGymTraining[]>([]);
+  const [recentSessions, setRecentSessions] = useState<CompletedGymSession[]>([]);
   const [suggestion, setSuggestion] = useState<GymTrainingTemplate | null>(null);
   const [coachTip, setCoachTip] = useState("");
   const [mounted, setMounted] = useState(false);
@@ -39,6 +41,7 @@ export default function GymPage() {
     setMounted(true);
     setCustomTrainings(getGymTrainings());
     const recent = getRecentGymSessions(10);
+    setRecentSessions(recent.slice(0, 5));
     const lastStrength = getLastStrengthDate();
     const daysSince = lastStrength
       ? Math.floor((Date.now() - lastStrength.getTime()) / (1000 * 60 * 60 * 24))
@@ -100,6 +103,51 @@ export default function GymPage() {
             {coachTip}
           </p>
         </div>
+      )}
+
+      {recentSessions.length > 0 && (
+        <section className="mb-6">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+            Recente sessies
+          </h2>
+          <div className="flex flex-col gap-2">
+            {recentSessions.map((s) => {
+              const date = new Date(s.completedAt);
+              const isToday = new Date().toDateString() === date.toDateString();
+              const isYesterday = new Date(Date.now() - 86400000).toDateString() === date.toDateString();
+              const dayLabel = isToday
+                ? "Vandaag"
+                : isYesterday
+                  ? "Gisteren"
+                  : date.toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" });
+              const timeLabel = date.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" });
+              return (
+                <Link
+                  key={s.id}
+                  href={`/gym/session/${s.id}`}
+                  className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 transition-all hover:border-zinc-300 hover:shadow-sm active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+                >
+                  <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                      {s.trainingName}
+                    </h3>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      {dayLabel} om {timeLabel} &middot; {s.exercises.length} oefeningen
+                    </p>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-300 dark:text-zinc-600">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
       )}
 
       {suggestion && (

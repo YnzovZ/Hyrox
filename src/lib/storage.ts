@@ -51,6 +51,7 @@ export interface CompletedGymSession {
   completedAt: string;
   week?: number;
   muscleGroups: string[];
+  warmupActivities?: { type: string; time?: string; distance?: string }[];
   exercises: {
     exerciseId: string;
     weight: string;
