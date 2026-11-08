@@ -8,10 +8,15 @@ import {
   defaultWarmups,
   getExerciseById,
   muscleGroupLabels,
+  warmupTypeLabels,
+  warmupTypeEmoji,
   type GymTrainingExercise,
   type WarmupConfig,
+  type WarmupActivity,
+  type WarmupActivityType,
   type MuscleGroup,
   type GymExercise,
+  type CoachSession,
 } from "@/lib/gym-data";
 import {
   getGymTrainings,
@@ -164,11 +169,13 @@ export default function GymTrainingPage() {
     name: string;
     exercises: GymTrainingExercise[];
     warmup: WarmupConfig;
+    warmupActivities: WarmupActivity[];
     muscleGroups: MuscleGroup[];
     sourceId: string;
   } | null>(null);
   const [activeExercises, setActiveExercises] = useState<ActiveExercise[]>([]);
   const [warmupDone, setWarmupDone] = useState(false);
+  const [warmupDoneList, setWarmupDoneList] = useState<boolean[]>([]);
   const [editIdx, setEditIdx] = useState<number | null>(null);
   const [showComplete, setShowComplete] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -194,10 +201,26 @@ export default function GymTrainingPage() {
     let name = "";
     let exercises: GymTrainingExercise[] = [];
     let warmupKey = "bike5";
+    let warmupActivities: WarmupActivity[] = [];
     let muscleGroups: MuscleGroup[] = [];
     let sourceId = id;
 
-    if (id.startsWith("custom-")) {
+    if (id === "coach") {
+      try {
+        const stored = sessionStorage.getItem("hyrox_coach_session");
+        if (!stored) { router.push("/gym"); return; }
+        const session: CoachSession = JSON.parse(stored);
+        name = session.name;
+        exercises = session.exercises;
+        warmupActivities = session.warmupActivities || [];
+        muscleGroups = session.muscleGroups;
+        warmupKey = "none";
+        sourceId = "coach";
+      } catch {
+        router.push("/gym");
+        return;
+      }
+    } else if (id.startsWith("custom-")) {
       const customId = id.replace("custom-", "");
       const customs = getGymTrainings();
       const custom = customs.find((t) => t.id === customId);
@@ -208,6 +231,7 @@ export default function GymTrainingPage() {
       name = custom.name;
       exercises = custom.exercises;
       warmupKey = custom.warmupKey;
+      warmupActivities = (custom.warmupActivities as WarmupActivity[]) || [];
       sourceId = custom.id;
       const groups = new Set<MuscleGroup>();
       for (const ex of exercises) {
@@ -229,7 +253,8 @@ export default function GymTrainingPage() {
     }
 
     const warmup = defaultWarmups[warmupKey] || defaultWarmups.bike5;
-    setTraining({ name, exercises, warmup, muscleGroups, sourceId });
+    setTraining({ name, exercises, warmup, warmupActivities, muscleGroups, sourceId });
+    setWarmupDoneList(warmupActivities.map(() => false));
 
     const active: ActiveExercise[] = exercises.map((ex) => {
       const def = getExerciseById(ex.exerciseId);
@@ -432,7 +457,9 @@ export default function GymTrainingPage() {
       })),
     });
 
-    if (id.startsWith("custom-")) {
+    if (id === "coach") {
+      try { sessionStorage.removeItem("hyrox_coach_session"); } catch {}
+    } else if (id.startsWith("custom-")) {
       const customId = id.replace("custom-", "");
       const customs = getGymTrainings();
       const custom = customs.find((t) => t.id === customId);
@@ -515,7 +542,47 @@ export default function GymTrainingPage() {
         </div>
       </div>
 
-      {training.warmup.type !== "geen" && (
+      {training.warmupActivities.length > 0 ? (
+        <section className="mb-6">
+          <div className="flex flex-col gap-2">
+            {training.warmupActivities.map((activity, i) => {
+              const done = warmupDoneList[i] || false;
+              const desc = [
+                activity.time ? `${activity.time} min` : null,
+                activity.distance ? `${activity.distance} km` : null,
+              ].filter(Boolean).join(", ");
+              return (
+                <div
+                  key={i}
+                  className={`rounded-xl border p-4 transition-all ${
+                    done
+                      ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20"
+                      : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{warmupTypeEmoji[activity.type as WarmupActivityType]}</span>
+                      <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
+                        {warmupTypeLabels[activity.type as WarmupActivityType]}
+                        {desc && <span className="ml-1 font-normal text-zinc-500 dark:text-zinc-400">{desc}</span>}
+                      </h3>
+                    </div>
+                    <button
+                      onClick={() => setWarmupDoneList((prev) => prev.map((d, j) => j === i ? !d : d))}
+                      className={`rounded-full p-1 transition-colors ${done ? "text-green-600" : "text-zinc-300 hover:text-zinc-500 dark:text-zinc-600"}`}
+                    >
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : training.warmup.type !== "geen" ? (
         <section className="mb-6">
           <div
             className={`rounded-xl border p-4 transition-all ${
@@ -553,7 +620,7 @@ export default function GymTrainingPage() {
             )}
           </div>
         </section>
-      )}
+      ) : null}
 
       <section className="mb-6">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">

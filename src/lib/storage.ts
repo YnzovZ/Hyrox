@@ -39,6 +39,7 @@ export interface SavedGymTraining {
   name: string;
   exercises: { exerciseId: string; sets: number; reps: string }[];
   warmupKey: string;
+  warmupActivities?: { type: string; time?: string; distance?: string }[];
   createdAt: string;
   lastUsed?: string;
 }

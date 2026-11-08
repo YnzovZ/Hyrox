@@ -71,6 +71,26 @@ export default function GymPage() {
         </p>
       </header>
 
+      <Link
+        href="/gym/coach"
+        className="mb-6 flex items-center gap-4 rounded-xl border-2 border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-4 transition-all hover:shadow-md active:scale-[0.98] dark:border-green-800 dark:from-green-950/30 dark:to-emerald-950/30"
+      >
+        <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-green-100 text-2xl dark:bg-green-900/40">
+          🧠
+        </span>
+        <div className="flex-1">
+          <h3 className="text-base font-bold text-green-700 dark:text-green-300">
+            Personal Trainer
+          </h3>
+          <p className="text-sm text-green-600 dark:text-green-400">
+            Laat de coach een training voor je samenstellen
+          </p>
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-400">
+          <path d="M9 18l6-6-6-6" />
+        </svg>
+      </Link>
+
       {coachTip && (
         <div className="mb-6 flex gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
           <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-base dark:bg-amber-900/40">

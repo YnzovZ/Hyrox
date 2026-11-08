@@ -7,9 +7,13 @@ import {
   muscleGroupLabels,
   defaultWarmups,
   getExerciseById,
+  warmupTypeLabels,
+  warmupTypeEmoji,
   type MuscleGroup,
   type GymExercise,
   type GymTrainingExercise,
+  type WarmupActivity,
+  type WarmupActivityType,
 } from "@/lib/gym-data";
 import {
   saveGymTraining,
@@ -22,13 +26,7 @@ import {
 
 const muscleGroups: MuscleGroup[] = ["chest", "back", "shoulders", "biceps", "triceps", "legs", "core"];
 
-const warmupOptions = [
-  { key: "bike5", label: "Fiets 5 min" },
-  { key: "bikeInterval", label: "Fiets interval (23 min)" },
-  { key: "treadmill5", label: "Loopband 5 min" },
-  { key: "rowing5", label: "Roeier 5 min" },
-  { key: "none", label: "Geen warmup" },
-];
+const warmupTypes: WarmupActivityType[] = ["fiets", "loopband", "roeier"];
 
 export default function GymBuilderPage() {
   return (
@@ -48,7 +46,7 @@ function GymBuilderContent() {
 
   const [name, setName] = useState("");
   const [selectedExercises, setSelectedExercises] = useState<GymTrainingExercise[]>([]);
-  const [warmupKey, setWarmupKey] = useState("bike5");
+  const [warmupActivities, setWarmupActivities] = useState<WarmupActivity[]>([]);
   const [showPicker, setShowPicker] = useState(false);
   const [filterGroup, setFilterGroup] = useState<MuscleGroup | "all">("all");
   const [mounted, setMounted] = useState(false);
@@ -60,7 +58,15 @@ function GymBuilderContent() {
       if (existing) {
         setName(existing.name);
         setSelectedExercises(existing.exercises);
-        setWarmupKey(existing.warmupKey);
+        if (existing.warmupActivities?.length) {
+          setWarmupActivities(existing.warmupActivities as WarmupActivity[]);
+        } else if (existing.warmupKey && existing.warmupKey !== "none") {
+          const warmup = defaultWarmups[existing.warmupKey];
+          if (warmup && warmup.type !== "geen") {
+            const totalMin = warmup.intervals.reduce((s, i) => s + i.minutes, 0);
+            setWarmupActivities([{ type: warmup.type as WarmupActivityType, time: String(totalMin) }]);
+          }
+        }
       }
     }
   }, [editId]);
@@ -97,7 +103,8 @@ function GymBuilderContent() {
       id: editId || `custom-${Date.now()}`,
       name: name.trim(),
       exercises: selectedExercises,
-      warmupKey,
+      warmupKey: "none",
+      warmupActivities: warmupActivities.length > 0 ? warmupActivities : undefined,
       createdAt: editId
         ? (getGymTrainings().find((t) => t.id === editId)?.createdAt || new Date().toISOString())
         : new Date().toISOString(),
@@ -187,21 +194,72 @@ function GymBuilderContent() {
         <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
           Warmup
         </label>
-        <div className="flex flex-wrap gap-2">
-          {warmupOptions.map((opt) => (
-            <button
-              key={opt.key}
-              onClick={() => setWarmupKey(opt.key)}
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                warmupKey === opt.key
-                  ? "bg-amber-500 text-white"
-                  : "border border-zinc-200 bg-white text-zinc-600 hover:border-amber-300 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
+        {warmupActivities.length > 0 && (
+          <div className="mb-3 flex flex-col gap-2">
+            {warmupActivities.map((activity, idx) => (
+              <div
+                key={idx}
+                className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900"
+              >
+                <span className="text-lg">{warmupTypeEmoji[activity.type]}</span>
+                <select
+                  value={activity.type}
+                  onChange={(e) => {
+                    const copy = [...warmupActivities];
+                    copy[idx] = { ...copy[idx], type: e.target.value as WarmupActivityType };
+                    setWarmupActivities(copy);
+                  }}
+                  className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                >
+                  {warmupTypes.map((t) => (
+                    <option key={t} value={t}>{warmupTypeLabels[t]}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="min"
+                  value={activity.time || ""}
+                  onChange={(e) => {
+                    const copy = [...warmupActivities];
+                    copy[idx] = { ...copy[idx], time: e.target.value || undefined };
+                    setWarmupActivities(copy);
+                  }}
+                  className="w-16 rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                />
+                <span className="text-xs text-zinc-400">min</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="km"
+                  value={activity.distance || ""}
+                  onChange={(e) => {
+                    const copy = [...warmupActivities];
+                    copy[idx] = { ...copy[idx], distance: e.target.value || undefined };
+                    setWarmupActivities(copy);
+                  }}
+                  className="w-16 rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                />
+                <span className="text-xs text-zinc-400">km</span>
+                <button
+                  onClick={() => setWarmupActivities(warmupActivities.filter((_, i) => i !== idx))}
+                  className="ml-auto rounded p-1 text-zinc-400 hover:text-red-500"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <button
+          onClick={() => setWarmupActivities([...warmupActivities, { type: "fiets" }])}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-white py-2.5 text-sm font-medium text-zinc-500 transition-all hover:border-amber-400 hover:text-amber-600 active:scale-[0.98] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-amber-600 dark:hover:text-amber-400"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 5v14" /><path d="M5 12h14" />
+          </svg>
+          Warmup toevoegen
+        </button>
       </section>
 
       <section className="mb-6">

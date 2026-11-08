@@ -103,6 +103,26 @@ export interface WarmupConfig {
   intervals: WarmupInterval[];
 }
 
+export type WarmupActivityType = "fiets" | "loopband" | "roeier";
+
+export interface WarmupActivity {
+  type: WarmupActivityType;
+  time?: string;
+  distance?: string;
+}
+
+export const warmupTypeLabels: Record<WarmupActivityType, string> = {
+  fiets: "Fietsen",
+  loopband: "Loopband",
+  roeier: "Roeien",
+};
+
+export const warmupTypeEmoji: Record<WarmupActivityType, string> = {
+  fiets: "\u{1F6B2}",
+  loopband: "\u{1F3C3}",
+  roeier: "\u{1F6A3}",
+};
+
 export const defaultWarmups: Record<string, WarmupConfig> = {
   bike5: {
     type: "fiets",
@@ -330,4 +350,84 @@ export function suggestNextTraining(
   }
 
   return bestTraining;
+}
+
+// --- Coach / Personal Trainer ---
+
+export interface CoachFocusOption {
+  id: string;
+  label: string;
+  description: string;
+  groups: MuscleGroup[];
+}
+
+export const coachFocusOptions: CoachFocusOption[] = [
+  { id: "full-body", label: "Full body", description: "Alles een beetje", groups: ["chest", "back", "shoulders", "legs", "core"] },
+  { id: "push", label: "Push", description: "Borst, schouders, triceps", groups: ["chest", "shoulders", "triceps"] },
+  { id: "pull", label: "Pull", description: "Rug, biceps", groups: ["back", "biceps"] },
+  { id: "upper", label: "Bovenlichaam", description: "Borst, rug, schouders", groups: ["chest", "back", "shoulders"] },
+  { id: "legs", label: "Benen", description: "Benen en core", groups: ["legs", "core"] },
+  { id: "chest", label: "Borst", description: "Focus op borst", groups: ["chest"] },
+  { id: "back", label: "Rug", description: "Focus op rug", groups: ["back"] },
+  { id: "shoulders", label: "Schouders", description: "Focus op schouders", groups: ["shoulders"] },
+];
+
+export interface CoachSession {
+  name: string;
+  muscleGroups: MuscleGroup[];
+  exercises: GymTrainingExercise[];
+  warmupActivities: WarmupActivity[];
+}
+
+export function generateCoachExercises(
+  focusGroups: MuscleGroup[],
+  recentExerciseIds: Set<string>,
+): GymTrainingExercise[] {
+  const targetTotal = 6;
+  const perGroup = new Map<MuscleGroup, number>();
+
+  if (focusGroups.length === 1) {
+    perGroup.set(focusGroups[0], 5);
+  } else if (focusGroups.length === 2) {
+    perGroup.set(focusGroups[0], 3);
+    perGroup.set(focusGroups[1], 3);
+  } else if (focusGroups.length === 3) {
+    perGroup.set(focusGroups[0], 2);
+    perGroup.set(focusGroups[1], 2);
+    perGroup.set(focusGroups[2], 2);
+  } else {
+    for (const g of focusGroups) perGroup.set(g, 1);
+    let remaining = targetTotal - focusGroups.length;
+    for (const g of focusGroups) {
+      if (remaining <= 0) break;
+      perGroup.set(g, (perGroup.get(g) || 1) + 1);
+      remaining--;
+    }
+  }
+
+  const result: GymTrainingExercise[] = [];
+
+  for (const group of focusGroups) {
+    const count = perGroup.get(group) || 1;
+    const candidates = exerciseLibrary
+      .filter((e) => e.muscleGroup === group)
+      .sort((a, b) => {
+        let sa = 0, sb = 0;
+        if (a.ynzoWeight) sa += 2;
+        if (b.ynzoWeight) sb += 2;
+        if (!recentExerciseIds.has(a.id)) sa += 1;
+        if (!recentExerciseIds.has(b.id)) sb += 1;
+        return sb - sa;
+      });
+
+    for (const ex of candidates.slice(0, count)) {
+      result.push({
+        exerciseId: ex.id,
+        sets: ex.defaultSets,
+        reps: ex.defaultReps,
+      });
+    }
+  }
+
+  return result.slice(0, targetTotal);
 }
