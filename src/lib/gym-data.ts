@@ -311,28 +311,25 @@ export function getCoachTip(
 }
 
 export function suggestNextTraining(
-  recentMuscleGroups: MuscleGroup[],
+  recentSessions: { trainingId: string; muscleGroups: string[] }[],
   daysSinceLastSession?: number,
 ): GymTrainingTemplate {
   const fullBody = presetTrainings.find((t) => t.id === "preset-full-body")!;
 
-  if (recentMuscleGroups.length === 0 || (daysSinceLastSession != null && daysSinceLastSession >= 5)) {
+  if (recentSessions.length === 0 || (daysSinceLastSession != null && daysSinceLastSession >= 5)) {
     return fullBody;
   }
 
   const groupCounts: Record<MuscleGroup, number> = {
     chest: 0, back: 0, shoulders: 0, biceps: 0, triceps: 0, legs: 0, core: 0,
   };
-  for (const g of recentMuscleGroups) {
-    groupCounts[g] = (groupCounts[g] || 0) + 1;
+  for (const s of recentSessions) {
+    for (const g of s.muscleGroups) {
+      if (g in groupCounts) groupCounts[g as MuscleGroup]++;
+    }
   }
 
-  // Upper body priority boost (negative = "feels less trained" = more needed)
-  // Biceps/triceps get extra bonus: Ynzo pakt die bijna elke sessie mee
-  const upperBias: Partial<Record<MuscleGroup, number>> = {
-    chest: -0.3, back: -0.3, shoulders: -0.3,
-    biceps: -0.5, triceps: -0.5,
-  };
+  const recentIds = new Set(recentSessions.slice(0, 2).map((s) => s.trainingId));
 
   let bestTraining = presetTrainings[0];
   let bestScore = -Infinity;
@@ -340,9 +337,14 @@ export function suggestNextTraining(
   for (const training of presetTrainings) {
     let score = 0;
     for (const mg of training.muscleGroups) {
-      const effective = groupCounts[mg] + (upperBias[mg] ?? 0);
-      score += 3 - effective;
+      score += 3 - groupCounts[mg];
     }
+    score = score / training.muscleGroups.length;
+
+    if (recentIds.has(training.id)) {
+      score -= 10;
+    }
+
     if (score > bestScore) {
       bestScore = score;
       bestTraining = training;

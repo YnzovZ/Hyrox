@@ -47,8 +47,11 @@ export default function GymPage() {
       ? Math.floor((Date.now() - lastStrength.getTime()) / (1000 * 60 * 60 * 24))
       : undefined;
     setCoachTip(getCoachTip(recent, daysSince));
-    const recentGroups = recent.slice(0, 3).flatMap((s) => s.muscleGroups) as MuscleGroup[];
-    setSuggestion(suggestNextTraining(recentGroups, daysSince));
+    const recentForSuggestion = recent.slice(0, 3).map((s) => ({
+      trainingId: s.trainingId,
+      muscleGroups: s.muscleGroups,
+    }));
+    setSuggestion(suggestNextTraining(recentForSuggestion, daysSince));
   }, []);
 
   function handleDelete(id: string) {
