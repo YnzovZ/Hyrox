@@ -42,16 +42,19 @@ function SwipeableCard({
   onRemove,
   isOpen,
   onOpen,
+  onClose,
 }: {
   children: React.ReactNode;
   onRemove: () => void;
   isOpen: boolean;
   onOpen: () => void;
+  onClose: () => void;
 }) {
   const contentRef = useRef<HTMLDivElement>(null);
   const startX = useRef(0);
   const offsetRef = useRef(0);
   const swiping = useRef(false);
+  const hasMoved = useRef(false);
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -64,14 +67,26 @@ function SwipeableCard({
     }
   }, [isOpen]);
 
+  function snapClosed() {
+    if (!contentRef.current) return;
+    contentRef.current.style.transition = "transform 0.2s ease-out";
+    contentRef.current.style.transform = "translateX(0)";
+    offsetRef.current = 0;
+    onClose();
+    const el = contentRef.current;
+    setTimeout(() => { el.style.transition = ""; }, 200);
+  }
+
   function onTouchStart(e: React.TouchEvent) {
     if ((e.target as HTMLElement).closest("[data-drag-handle]")) return;
     startX.current = e.touches[0].clientX;
     swiping.current = true;
+    hasMoved.current = false;
   }
 
   function onTouchMove(e: React.TouchEvent) {
     if (!swiping.current || !contentRef.current) return;
+    hasMoved.current = true;
     const base = isOpen ? -DELETE_BTN_W : 0;
     const diff = e.touches[0].clientX - startX.current + base;
     const clamped = Math.max(-DELETE_BTN_W, Math.min(0, diff));
@@ -82,6 +97,12 @@ function SwipeableCard({
   function onTouchEnd() {
     swiping.current = false;
     if (!contentRef.current) return;
+
+    if (!hasMoved.current) {
+      if (isOpen) snapClosed();
+      return;
+    }
+
     const shouldOpen = offsetRef.current < -DELETE_BTN_W / 2;
     contentRef.current.style.transition = "transform 0.2s ease-out";
 
@@ -92,6 +113,7 @@ function SwipeableCard({
     } else {
       contentRef.current.style.transform = "translateX(0)";
       offsetRef.current = 0;
+      if (isOpen) onClose();
     }
 
     const el = contentRef.current;
@@ -556,6 +578,7 @@ export default function GymTrainingPage() {
                   onRemove={() => removeExercise(idx)}
                   isOpen={openSwipeIdx === idx}
                   onOpen={() => setOpenSwipeIdx(idx)}
+                  onClose={() => setOpenSwipeIdx(null)}
                 >
                   <div
                     className={`rounded-xl border p-4 transition-colors ${
