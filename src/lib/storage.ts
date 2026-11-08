@@ -39,9 +39,19 @@ export interface SavedGymTraining {
   name: string;
   exercises: { exerciseId: string; sets: number; reps: string }[];
   warmupKey: string;
-  warmupActivities?: { type: string; time?: string; distance?: string }[];
+  warmupActivities?: StoredActivity[];
   createdAt: string;
   lastUsed?: string;
+}
+
+export interface StoredActivity {
+  type: string;
+  time?: string;
+  distance?: string;
+}
+
+export function getSessionActivities(s: CompletedGymSession): StoredActivity[] {
+  return s.activities ?? s.warmupActivities ?? [];
 }
 
 export interface CompletedGymSession {
@@ -51,7 +61,9 @@ export interface CompletedGymSession {
   completedAt: string;
   week?: number;
   muscleGroups: string[];
-  warmupActivities?: { type: string; time?: string; distance?: string }[];
+  activities?: StoredActivity[];
+  /** Legacy veld van voor activiteiten, alleen nog gelezen via getSessionActivities */
+  warmupActivities?: StoredActivity[];
   exercises: {
     exerciseId: string;
     weight: string;

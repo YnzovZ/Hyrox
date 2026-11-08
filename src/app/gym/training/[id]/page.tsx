@@ -8,12 +8,12 @@ import {
   defaultWarmups,
   getExerciseById,
   muscleGroupLabels,
-  warmupTypeLabels,
-  warmupTypeEmoji,
+  activityLabels,
+  activityEmoji,
+  describeActivity,
   type GymTrainingExercise,
-  type WarmupConfig,
-  type WarmupActivity,
-  type WarmupActivityType,
+  type SessionActivity,
+  type ActivityType,
   type MuscleGroup,
   type GymExercise,
   type CoachSession,
@@ -26,6 +26,12 @@ import {
   saveGymTraining,
   getCalendarWeek,
 } from "@/lib/storage";
+import ActivitySheet from "@/components/ActivitySheet";
+
+interface TrackedActivity {
+  activity: SessionActivity;
+  done: boolean;
+}
 
 interface ActiveExercise {
   exerciseId: string;
@@ -168,14 +174,13 @@ export default function GymTrainingPage() {
   const [training, setTraining] = useState<{
     name: string;
     exercises: GymTrainingExercise[];
-    warmup: WarmupConfig;
-    warmupActivities: WarmupActivity[];
     muscleGroups: MuscleGroup[];
     sourceId: string;
   } | null>(null);
   const [activeExercises, setActiveExercises] = useState<ActiveExercise[]>([]);
-  const [warmupDone, setWarmupDone] = useState(false);
-  const [warmupDoneList, setWarmupDoneList] = useState<boolean[]>([]);
+  const [activities, setActivities] = useState<TrackedActivity[]>([]);
+  // null = gesloten, -1 = nieuwe activiteit, >= 0 = bestaande aanpassen
+  const [activitySheetIdx, setActivitySheetIdx] = useState<number | null>(null);
   const [editIdx, setEditIdx] = useState<number | null>(null);
   const [showComplete, setShowComplete] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -200,8 +205,8 @@ export default function GymTrainingPage() {
   function loadTraining() {
     let name = "";
     let exercises: GymTrainingExercise[] = [];
-    let warmupKey = "bike5";
-    let warmupActivities: WarmupActivity[] = [];
+    let warmupKey = "none";
+    let plannedActivities: SessionActivity[] = [];
     let muscleGroups: MuscleGroup[] = [];
     let sourceId = id;
 
@@ -212,9 +217,7 @@ export default function GymTrainingPage() {
         const session: CoachSession = JSON.parse(stored);
         name = session.name;
         exercises = session.exercises;
-        warmupActivities = session.warmupActivities || [];
         muscleGroups = session.muscleGroups;
-        warmupKey = "none";
         sourceId = "coach";
       } catch {
         router.push("/gym");
@@ -231,7 +234,7 @@ export default function GymTrainingPage() {
       name = custom.name;
       exercises = custom.exercises;
       warmupKey = custom.warmupKey;
-      warmupActivities = (custom.warmupActivities as WarmupActivity[]) || [];
+      plannedActivities = (custom.warmupActivities as SessionActivity[]) || [];
       sourceId = custom.id;
       const groups = new Set<MuscleGroup>();
       for (const ex of exercises) {
@@ -252,9 +255,13 @@ export default function GymTrainingPage() {
       sourceId = preset.id;
     }
 
-    const warmup = defaultWarmups[warmupKey] || defaultWarmups.bike5;
-    setTraining({ name, exercises, warmup, warmupActivities, muscleGroups, sourceId });
-    setWarmupDoneList(warmupActivities.map(() => false));
+    const warmup = defaultWarmups[warmupKey];
+    if (plannedActivities.length === 0 && warmup && warmup.type !== "geen") {
+      const minutes = warmup.intervals.reduce((sum, i) => sum + i.minutes, 0);
+      plannedActivities = [{ type: warmup.type, time: String(minutes) }];
+    }
+    setTraining({ name, exercises, muscleGroups, sourceId });
+    setActivities(plannedActivities.map((activity) => ({ activity, done: false })));
 
     const active: ActiveExercise[] = exercises.map((ex) => {
       const def = getExerciseById(ex.exerciseId);
@@ -449,7 +456,7 @@ export default function GymTrainingPage() {
       completedAt: new Date().toISOString(),
       week,
       muscleGroups: Array.from(currentMuscleGroups),
-      warmupActivities: training.warmupActivities.length > 0 ? training.warmupActivities : undefined,
+      activities: activities.filter((a) => a.done).map((a) => a.activity),
       exercises: activeExercises.map((ex) => ({
         exerciseId: ex.exerciseId,
         weight: ex.weight,
@@ -485,7 +492,8 @@ export default function GymTrainingPage() {
   }
 
   const allDone = activeExercises.length > 0 && activeExercises.every((ex) => ex.done);
-  const totalWarmup = training.warmup.intervals.reduce((sum, i) => sum + i.minutes, 0);
+  const doneCount = activeExercises.filter((e) => e.done).length;
+  const canComplete = doneCount > 0 || activities.some((a) => a.done);
   const alreadySelected = new Set(activeExercises.map((e) => e.exerciseId));
 
   const filteredExercises = (
@@ -544,85 +552,51 @@ export default function GymTrainingPage() {
         </div>
       </div>
 
-      {training.warmupActivities.length > 0 ? (
-        <section className="mb-6">
-          <div className="flex flex-col gap-2">
-            {training.warmupActivities.map((activity, i) => {
-              const done = warmupDoneList[i] || false;
-              const desc = [
-                activity.time ? `${activity.time} min` : null,
-                activity.distance ? `${activity.distance} km` : null,
-              ].filter(Boolean).join(", ");
-              return (
-                <div
-                  key={i}
-                  className={`rounded-xl border p-4 transition-all ${
-                    done
-                      ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20"
-                      : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">{warmupTypeEmoji[activity.type as WarmupActivityType]}</span>
-                      <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
-                        {warmupTypeLabels[activity.type as WarmupActivityType]}
-                        {desc && <span className="ml-1 font-normal text-zinc-500 dark:text-zinc-400">{desc}</span>}
-                      </h3>
-                    </div>
-                    <button
-                      onClick={() => setWarmupDoneList((prev) => prev.map((d, j) => j === i ? !d : d))}
-                      className={`rounded-full p-1 transition-colors ${done ? "text-green-600" : "text-zinc-300 hover:text-zinc-500 dark:text-zinc-600"}`}
-                    >
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20 6L9 17l-5-5" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      ) : training.warmup.type !== "geen" ? (
-        <section className="mb-6">
-          <div
-            className={`rounded-xl border p-4 transition-all ${
-              warmupDone
-                ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20"
-                : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
-            }`}
-          >
-            <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">
-                  {training.warmup.type === "fiets" ? "\u{1F6B2}" : training.warmup.type === "loopband" ? "\u{1F3C3}" : "\u{1F6A3}"}
-                </span>
-                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
-                  Warmup &middot; {training.warmup.type} &middot; {totalWarmup} min
-                </h3>
-              </div>
-              <button
-                onClick={() => setWarmupDone(!warmupDone)}
-                className={`rounded-full p-1 transition-colors ${warmupDone ? "text-green-600" : "text-zinc-300 hover:text-zinc-500 dark:text-zinc-600"}`}
+      <section className="mb-6">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+          Activiteiten
+        </h2>
+        <div className="flex flex-col gap-2">
+          {activities.map(({ activity, done }, i) => {
+            const desc = describeActivity(activity);
+            return (
+              <div
+                key={i}
+                className={`flex items-center gap-2 rounded-xl border p-3 transition-all ${
+                  done
+                    ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20"
+                    : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
+                }`}
               >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
-              </button>
-            </div>
-            {training.warmup.intervals.length > 1 && (
-              <div className="flex flex-wrap gap-2">
-                {training.warmup.intervals.map((interval, i) => (
-                  <span key={i} className="rounded-lg bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-                    {interval.label} {interval.minutes}m
+                <button onClick={() => setActivitySheetIdx(i)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+                  <span className="text-lg">{activityEmoji[activity.type as ActivityType]}</span>
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    {activityLabels[activity.type as ActivityType] || activity.type}
                   </span>
-                ))}
+                  {desc && <span className="truncate text-sm text-zinc-500 dark:text-zinc-400">{desc}</span>}
+                </button>
+                <button
+                  onClick={() => setActivities((prev) => prev.map((a, j) => (j === i ? { ...a, done: !a.done } : a)))}
+                  className={`rounded-full p-1 transition-colors ${done ? "text-green-600" : "text-zinc-300 hover:text-zinc-500 dark:text-zinc-600"}`}
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                </button>
               </div>
-            )}
-          </div>
-        </section>
-      ) : null}
+            );
+          })}
+          <button
+            onClick={() => setActivitySheetIdx(-1)}
+            className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-white py-3 text-sm font-medium text-zinc-500 transition-all hover:border-amber-400 hover:text-amber-600 active:scale-[0.98] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14" /><path d="M5 12h14" />
+            </svg>
+            Activiteit toevoegen
+          </button>
+        </div>
+      </section>
 
       <section className="mb-6">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
@@ -783,15 +757,44 @@ export default function GymTrainingPage() {
 
       <button
         onClick={completeTraining}
-        disabled={!allDone && !warmupDone}
+        disabled={!canComplete}
         className={`w-full rounded-xl py-4 text-base font-bold transition-all ${
           allDone
             ? "bg-green-500 text-white hover:bg-green-600 active:scale-[0.98]"
-            : "bg-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600"
+            : canComplete
+              ? "bg-amber-500 text-white hover:bg-amber-600 active:scale-[0.98]"
+              : "bg-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600"
         }`}
       >
-        {allDone ? "Training voltooien" : `${activeExercises.filter((e) => e.done).length}/${activeExercises.length} klaar`}
+        {allDone
+          ? "Training voltooien"
+          : canComplete
+            ? `Voltooien (${doneCount}/${activeExercises.length} oefeningen)`
+            : `${doneCount}/${activeExercises.length} klaar`}
       </button>
+
+      {activitySheetIdx !== null && (
+        <ActivitySheet
+          initial={activitySheetIdx >= 0 ? activities[activitySheetIdx].activity : undefined}
+          onClose={() => setActivitySheetIdx(null)}
+          onDelete={
+            activitySheetIdx >= 0
+              ? () => {
+                  setActivities((prev) => prev.filter((_, i) => i !== activitySheetIdx));
+                  setActivitySheetIdx(null);
+                }
+              : undefined
+          }
+          onSave={(activity) => {
+            setActivities((prev) =>
+              activitySheetIdx >= 0
+                ? prev.map((a, i) => (i === activitySheetIdx ? { activity, done: true } : a))
+                : [...prev, { activity, done: true }]
+            );
+            setActivitySheetIdx(null);
+          }}
+        />
+      )}
 
       {showPicker && (
         <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-zinc-950">

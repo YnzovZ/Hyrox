@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   presetTrainings,
-  suggestNextTraining,
+  adviseNextTraining,
+  trainingDayOptions,
   getCoachTip,
   muscleGroupLabels,
   type MuscleGroup,
   type GymTrainingTemplate,
 } from "@/lib/gym-data";
+
+const presetCandidates = presetTrainings.map((t) => ({ id: t.id, name: t.name, groups: t.muscleGroups }));
 import {
   getGymTrainings,
   getRecentGymSessions,
@@ -32,7 +35,8 @@ const muscleColors: Record<MuscleGroup, string> = {
 export default function GymPage() {
   const [customTrainings, setCustomTrainings] = useState<SavedGymTraining[]>([]);
   const [recentSessions, setRecentSessions] = useState<CompletedGymSession[]>([]);
-  const [suggestion, setSuggestion] = useState<GymTrainingTemplate | null>(null);
+  const [adviceSessions, setAdviceSessions] = useState<CompletedGymSession[]>([]);
+  const [daysUntil, setDaysUntil] = useState(0);
   const [coachTip, setCoachTip] = useState("");
   const [mounted, setMounted] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -47,12 +51,13 @@ export default function GymPage() {
       ? Math.floor((Date.now() - lastStrength.getTime()) / (1000 * 60 * 60 * 24))
       : undefined;
     setCoachTip(getCoachTip(recent, daysSince));
-    const recentForSuggestion = recent.slice(0, 3).map((s) => ({
-      trainingId: s.trainingId,
-      muscleGroups: s.muscleGroups,
-    }));
-    setSuggestion(suggestNextTraining(recentForSuggestion, daysSince));
+    setAdviceSessions(recent);
+    const trainedToday = recent.length > 0 && new Date(recent[0].completedAt).toDateString() === new Date().toDateString();
+    setDaysUntil(trainedToday ? 1 : 0);
   }, []);
+
+  const advice = adviseNextTraining(adviceSessions, daysUntil, presetCandidates);
+  const suggestion: GymTrainingTemplate | undefined = presetTrainings.find((t) => t.id === advice.candidateId);
 
   function handleDelete(id: string) {
     deleteGymTraining(id);
@@ -78,7 +83,7 @@ export default function GymPage() {
       </header>
 
       <Link
-        href="/gym/coach"
+        href={`/gym/coach?dag=${daysUntil}`}
         className="mb-6 flex items-center gap-4 rounded-xl border-2 border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-4 transition-all hover:shadow-md active:scale-[0.98] dark:border-green-800 dark:from-green-950/30 dark:to-emerald-950/30"
       >
         <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-green-100 text-2xl dark:bg-green-900/40">
@@ -158,9 +163,38 @@ export default function GymPage() {
           <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
             Volgende training
           </h2>
+          <p className="mb-2 text-sm text-zinc-600 dark:text-zinc-300">Wanneer ga je?</p>
+          <div className="mb-3 grid grid-cols-4 gap-2">
+            {trainingDayOptions.map((o) => (
+              <button
+                key={o.days}
+                onClick={() => setDaysUntil(o.days)}
+                className={`rounded-lg px-2 py-2 text-sm font-medium transition-all active:scale-[0.97] ${
+                  daysUntil === o.days
+                    ? "bg-amber-500 text-white shadow-sm"
+                    : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+          <p
+            className={`mb-3 rounded-xl p-3 text-sm leading-relaxed ${
+              advice.restAdvised
+                ? "bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-200"
+                : "bg-green-50 text-green-700 dark:bg-green-950/20 dark:text-green-300"
+            }`}
+          >
+            {advice.reason}
+          </p>
           <Link
             href={`/gym/training/${suggestion.id}`}
-            className="block rounded-xl border-2 border-amber-300 bg-amber-50 p-4 transition-all hover:shadow-md active:scale-[0.98] dark:border-amber-700 dark:bg-amber-950/30"
+            className={`block rounded-xl border-2 p-4 transition-all hover:shadow-md active:scale-[0.98] ${
+              advice.restAdvised
+                ? "border-zinc-200 bg-white opacity-80 dark:border-zinc-800 dark:bg-zinc-900"
+                : "border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30"
+            }`}
           >
             <div className="mb-2 flex items-center justify-between">
               <h3 className="text-lg font-bold text-amber-700 dark:text-amber-300">

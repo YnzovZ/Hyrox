@@ -7,13 +7,14 @@ import {
   muscleGroupLabels,
   defaultWarmups,
   getExerciseById,
-  warmupTypeLabels,
-  warmupTypeEmoji,
+  activityLabels,
+  activityEmoji,
+  activityTypes,
   type MuscleGroup,
   type GymExercise,
   type GymTrainingExercise,
-  type WarmupActivity,
-  type WarmupActivityType,
+  type SessionActivity,
+  type ActivityType,
 } from "@/lib/gym-data";
 import {
   saveGymTraining,
@@ -26,7 +27,6 @@ import {
 
 const muscleGroups: MuscleGroup[] = ["chest", "back", "shoulders", "biceps", "triceps", "legs", "core"];
 
-const warmupTypes: WarmupActivityType[] = ["fiets", "loopband", "roeier"];
 
 export default function GymBuilderPage() {
   return (
@@ -46,7 +46,7 @@ function GymBuilderContent() {
 
   const [name, setName] = useState("");
   const [selectedExercises, setSelectedExercises] = useState<GymTrainingExercise[]>([]);
-  const [warmupActivities, setWarmupActivities] = useState<WarmupActivity[]>([]);
+  const [warmupActivities, setWarmupActivities] = useState<SessionActivity[]>([]);
   const [showPicker, setShowPicker] = useState(false);
   const [filterGroup, setFilterGroup] = useState<MuscleGroup | "all">("all");
   const [mounted, setMounted] = useState(false);
@@ -59,12 +59,12 @@ function GymBuilderContent() {
         setName(existing.name);
         setSelectedExercises(existing.exercises);
         if (existing.warmupActivities?.length) {
-          setWarmupActivities(existing.warmupActivities as WarmupActivity[]);
+          setWarmupActivities(existing.warmupActivities as SessionActivity[]);
         } else if (existing.warmupKey && existing.warmupKey !== "none") {
           const warmup = defaultWarmups[existing.warmupKey];
           if (warmup && warmup.type !== "geen") {
             const totalMin = warmup.intervals.reduce((s, i) => s + i.minutes, 0);
-            setWarmupActivities([{ type: warmup.type as WarmupActivityType, time: String(totalMin) }]);
+            setWarmupActivities([{ type: warmup.type as ActivityType, time: String(totalMin) }]);
           }
         }
       }
@@ -192,7 +192,7 @@ function GymBuilderContent() {
 
       <section className="mb-6">
         <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Warmup
+          Activiteiten (optioneel)
         </label>
         {warmupActivities.length > 0 && (
           <div className="mb-3 flex flex-col gap-2">
@@ -201,18 +201,18 @@ function GymBuilderContent() {
                 key={idx}
                 className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900"
               >
-                <span className="text-lg">{warmupTypeEmoji[activity.type]}</span>
+                <span className="text-lg">{activityEmoji[activity.type]}</span>
                 <select
                   value={activity.type}
                   onChange={(e) => {
                     const copy = [...warmupActivities];
-                    copy[idx] = { ...copy[idx], type: e.target.value as WarmupActivityType };
+                    copy[idx] = { ...copy[idx], type: e.target.value as ActivityType };
                     setWarmupActivities(copy);
                   }}
                   className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800"
                 >
-                  {warmupTypes.map((t) => (
-                    <option key={t} value={t}>{warmupTypeLabels[t]}</option>
+                  {activityTypes.map((t) => (
+                    <option key={t} value={t}>{activityLabels[t]}</option>
                   ))}
                 </select>
                 <input
@@ -252,13 +252,13 @@ function GymBuilderContent() {
           </div>
         )}
         <button
-          onClick={() => setWarmupActivities([...warmupActivities, { type: "fiets" }])}
+          onClick={() => setWarmupActivities([...warmupActivities, { type: "hardlopen" }])}
           className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-white py-2.5 text-sm font-medium text-zinc-500 transition-all hover:border-amber-400 hover:text-amber-600 active:scale-[0.98] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-amber-600 dark:hover:text-amber-400"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 5v14" /><path d="M5 12h14" />
           </svg>
-          Warmup toevoegen
+          Activiteit toevoegen
         </button>
       </section>
 

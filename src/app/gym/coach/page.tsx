@@ -7,17 +7,14 @@ import {
   generateCoachExercises,
   getExerciseById,
   muscleGroupLabels,
-  warmupTypeLabels,
-  warmupTypeEmoji,
+  adviseNextTraining,
+  trainingDayOptions,
   type CoachFocusOption,
   type CoachSession,
-  type WarmupActivity,
-  type WarmupActivityType,
   type MuscleGroup,
+  type TrainingAdvice,
 } from "@/lib/gym-data";
-import { getRecentGymSessions, getLastStrengthDate } from "@/lib/storage";
-
-const warmupTypes: WarmupActivityType[] = ["fiets", "loopband", "roeier"];
+import { getRecentGymSessions, type CompletedGymSession } from "@/lib/storage";
 
 const muscleColors: Record<MuscleGroup, string> = {
   chest: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
@@ -29,71 +26,42 @@ const muscleColors: Record<MuscleGroup, string> = {
   core: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300",
 };
 
+const focusCandidates = coachFocusOptions.map((o) => ({ id: o.id, name: o.label, groups: o.groups }));
+
 export default function CoachPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [mounted, setMounted] = useState(false);
-
-  const [selectedFocus, setSelectedFocus] = useState<CoachFocusOption | null>(null);
-  const [warmupActivities, setWarmupActivities] = useState<WarmupActivity[]>([]);
+  const [recent, setRecent] = useState<CompletedGymSession[]>([]);
+  const [daysUntil, setDaysUntil] = useState<number | null>(null);
   const [generatedSession, setGeneratedSession] = useState<CoachSession | null>(null);
-
-  const [recentGroupInfo, setRecentGroupInfo] = useState<{ group: string; daysAgo: number }[]>([]);
-  const [daysSince, setDaysSince] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     setMounted(true);
-    const recent = getRecentGymSessions(5);
-    const lastStrength = getLastStrengthDate();
-    const ds = lastStrength
-      ? Math.floor((Date.now() - lastStrength.getTime()) / (1000 * 60 * 60 * 24))
-      : undefined;
-    setDaysSince(ds);
-
-    const groupDays: Record<string, number> = {};
-    const now = Date.now();
-    for (const s of recent) {
-      const daysAgo = Math.floor((now - new Date(s.completedAt).getTime()) / (1000 * 60 * 60 * 24));
-      for (const g of s.muscleGroups) {
-        if (groupDays[g] === undefined || daysAgo < groupDays[g]) {
-          groupDays[g] = daysAgo;
-        }
-      }
+    setRecent(getRecentGymSessions(10));
+    const dag = new URLSearchParams(window.location.search).get("dag");
+    if (dag !== null && trainingDayOptions.some((o) => String(o.days) === dag)) {
+      setDaysUntil(Number(dag));
+      setStep(2);
     }
-    setRecentGroupInfo(
-      Object.entries(groupDays)
-        .sort((a, b) => a[1] - b[1])
-        .map(([group, daysAgo]) => ({ group, daysAgo }))
-    );
   }, []);
 
-  function handleSelectFocus(option: CoachFocusOption) {
-    setSelectedFocus(option);
+  const advice: TrainingAdvice | null =
+    daysUntil === null ? null : adviseNextTraining(recent, daysUntil, focusCandidates);
+
+  function handleSelectDay(days: number) {
+    setDaysUntil(days);
     setStep(2);
   }
 
-  function handleWarmupDone() {
+  function handleSelectFocus(option: CoachFocusOption) {
+    const recentExerciseIds = new Set(recent.slice(0, 3).flatMap((s) => s.exercises.map((e) => e.exerciseId)));
+    setGeneratedSession({
+      name: `Coach: ${option.label}`,
+      muscleGroups: option.groups,
+      exercises: generateCoachExercises(option.groups, recentExerciseIds),
+    });
     setStep(3);
-    generateTraining();
-  }
-
-  function generateTraining() {
-    if (!selectedFocus) return;
-
-    const recent = getRecentGymSessions(3);
-    const recentExerciseIds = new Set(
-      recent.flatMap((s) => s.exercises.map((e) => e.exerciseId))
-    );
-
-    const exercises = generateCoachExercises(selectedFocus.groups, recentExerciseIds);
-
-    const session: CoachSession = {
-      name: `Coach: ${selectedFocus.label}`,
-      muscleGroups: selectedFocus.groups,
-      exercises,
-      warmupActivities,
-    };
-    setGeneratedSession(session);
   }
 
   function removeGeneratedExercise(idx: number) {
@@ -153,22 +121,10 @@ export default function CoachPage() {
         ))}
       </div>
 
-      {step === 1 && (
-        <StepFocus
-          options={coachFocusOptions}
-          recentGroupInfo={recentGroupInfo}
-          daysSince={daysSince}
-          onSelect={handleSelectFocus}
-        />
-      )}
+      {step === 1 && <StepWhen lastSession={recent[0]} onSelect={handleSelectDay} />}
 
-      {step === 2 && (
-        <StepWarmup
-          warmupActivities={warmupActivities}
-          setWarmupActivities={setWarmupActivities}
-          warmupTypes={warmupTypes}
-          onDone={handleWarmupDone}
-        />
+      {step === 2 && advice && (
+        <StepFocus advice={advice} onSelect={handleSelectFocus} />
       )}
 
       {step === 3 && generatedSession && (
@@ -182,104 +138,81 @@ export default function CoachPage() {
   );
 }
 
-function getCoachAdvice(
-  recentGroupInfo: { group: string; daysAgo: number }[],
-  daysSince?: number,
-): { text: string; recommendedId: string | null } {
-  const allGroups: MuscleGroup[] = ["chest", "back", "shoulders", "biceps", "triceps", "legs", "core"];
-  const groupDaysMap = new Map(recentGroupInfo.map((r) => [r.group, r.daysAgo]));
-
-  if (recentGroupInfo.length === 0 || (daysSince != null && daysSince >= 5)) {
-    return { text: "Je bent even niet in de gym geweest. Full body is een goede start.", recommendedId: "full-body" };
-  }
-
-  const untrained = allGroups.filter((g) => !groupDaysMap.has(g));
-  const stale = allGroups.filter((g) => {
-    const d = groupDaysMap.get(g);
-    return d !== undefined && d >= 3;
-  });
-  const needsWork = [...untrained, ...stale];
-
-  if (needsWork.includes("legs") && needsWork.includes("core")) {
-    return { text: `Benen en core zijn het langst niet getraind. Goed moment voor een benendag.`, recommendedId: "legs" };
-  }
-  if (needsWork.includes("chest") || needsWork.includes("shoulders") || needsWork.includes("triceps")) {
-    const missing = needsWork.filter((g) => ["chest", "shoulders", "triceps"].includes(g));
-    const labels = missing.map((g) => muscleGroupLabels[g as MuscleGroup]).join(", ");
-    return { text: `${labels} ${missing.length === 1 ? "is" : "zijn"} aan de beurt. Push past hier goed bij.`, recommendedId: "push" };
-  }
-  if (needsWork.includes("back") || needsWork.includes("biceps")) {
-    return { text: "Rug en biceps zijn het langst geleden. Pull is een logische keuze.", recommendedId: "pull" };
-  }
-  if (needsWork.includes("legs")) {
-    return { text: "Benen heb je het langst niet gedaan. Tijd voor een benendag.", recommendedId: "legs" };
-  }
-
-  const recent = recentGroupInfo.filter((r) => r.daysAgo <= 1).map((r) => r.group);
-  if (recent.length > 0) {
-    const labels = recent.map((g) => muscleGroupLabels[g as MuscleGroup]).join(", ");
-    return { text: `${labels} heb je net getraind. Kies iets anders vandaag.`, recommendedId: null };
-  }
-
-  return { text: "", recommendedId: null };
-}
-
-function StepFocus({
-  options,
-  recentGroupInfo,
-  daysSince,
+function StepWhen({
+  lastSession,
   onSelect,
 }: {
-  options: CoachFocusOption[];
-  recentGroupInfo: { group: string; daysAgo: number }[];
-  daysSince?: number;
-  onSelect: (opt: CoachFocusOption) => void;
+  lastSession?: CompletedGymSession;
+  onSelect: (days: number) => void;
 }) {
-  const groupDaysMap = new Map(recentGroupInfo.map((r) => [r.group, r.daysAgo]));
-  const advice = getCoachAdvice(recentGroupInfo, daysSince);
+  let lastLabel: string | null = null;
+  if (lastSession) {
+    const d = new Date(lastSession.completedAt);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const day = new Date(d);
+    day.setHours(0, 0, 0, 0);
+    const diff = Math.round((today.getTime() - day.getTime()) / 86400000);
+    const when = diff === 0 ? "vandaag" : diff === 1 ? "gisteren" : `${diff} dagen geleden`;
+    lastLabel = `Je laatste training was ${lastSession.trainingName}, ${when}.`;
+  }
 
   return (
     <div>
       <h2 className="mb-2 text-lg font-bold text-zinc-900 dark:text-zinc-100">
-        Waar heb je zin in?
+        Wanneer ga je trainen?
       </h2>
-      {advice.text && (
-        <div className="mb-4 flex gap-3 rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-950/20">
-          <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-green-100 text-base dark:bg-green-900/40">
-            🧠
-          </span>
-          <p className="text-sm leading-relaxed text-green-700 dark:text-green-300">
-            {advice.text}
-          </p>
-        </div>
-      )}
-      {recentGroupInfo.length > 0 && (
-        <div className="mb-4 rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-400">
-            Recent getraind
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {recentGroupInfo.map((r) => (
-              <span
-                key={r.group}
-                className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                  muscleColors[r.group as MuscleGroup] || "bg-zinc-100 text-zinc-600"
-                }`}
-              >
-                {muscleGroupLabels[r.group as MuscleGroup] || r.group}
-                {r.daysAgo === 0 ? " (vandaag)" : r.daysAgo === 1 ? " (gisteren)" : ` (${r.daysAgo}d)`}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
+        {lastLabel ? `${lastLabel} ` : ""}Hoeveel hersteltijd ertussen zit, bepaalt wat slim is.
+      </p>
+      <div className="grid grid-cols-2 gap-3">
+        {trainingDayOptions.map((o) => (
+          <button
+            key={o.days}
+            onClick={() => onSelect(o.days)}
+            className="rounded-xl border border-zinc-200 bg-white p-4 text-left text-base font-semibold text-zinc-900 transition-all hover:border-amber-300 active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StepFocus({
+  advice,
+  onSelect,
+}: {
+  advice: TrainingAdvice;
+  onSelect: (opt: CoachFocusOption) => void;
+}) {
+  return (
+    <div>
+      <h2 className="mb-2 text-lg font-bold text-zinc-900 dark:text-zinc-100">
+        Waar ga je op trainen?
+      </h2>
+      <div
+        className={`mb-4 flex gap-3 rounded-xl border p-4 ${
+          advice.restAdvised
+            ? "border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20"
+            : "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20"
+        }`}
+      >
+        <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-white/70 text-base dark:bg-zinc-900/40">
+          🧠
+        </span>
+        <p
+          className={`text-sm leading-relaxed ${
+            advice.restAdvised ? "text-amber-800 dark:text-amber-200" : "text-green-700 dark:text-green-300"
+          }`}
+        >
+          {advice.reason}
+        </p>
+      </div>
       <div className="flex flex-col gap-3">
-        {options.map((opt) => {
-          const groupsRecent = opt.groups.some((g) => {
-            const d = groupDaysMap.get(g);
-            return d !== undefined && d <= 1;
-          });
-          const isRecommended = advice.recommendedId === opt.id;
+        {coachFocusOptions.map((opt) => {
+          const isRecommended = advice.candidateId === opt.id;
           return (
             <button
               key={opt.id}
@@ -287,9 +220,7 @@ function StepFocus({
               className={`rounded-xl border p-4 text-left transition-all active:scale-[0.98] ${
                 isRecommended
                   ? "border-green-300 bg-green-50 ring-2 ring-green-200 dark:border-green-700 dark:bg-green-950/30 dark:ring-green-800"
-                  : groupsRecent
-                    ? "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
-                    : "border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20"
+                  : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -321,107 +252,6 @@ function StepFocus({
   );
 }
 
-function StepWarmup({
-  warmupActivities,
-  setWarmupActivities,
-  warmupTypes,
-  onDone,
-}: {
-  warmupActivities: WarmupActivity[];
-  setWarmupActivities: (a: WarmupActivity[]) => void;
-  warmupTypes: WarmupActivityType[];
-  onDone: () => void;
-}) {
-  return (
-    <div>
-      <h2 className="mb-2 text-lg font-bold text-zinc-900 dark:text-zinc-100">
-        Hoe wil je opwarmen?
-      </h2>
-      <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
-        Voeg een of meer warmup-activiteiten toe, of sla het over.
-      </p>
-
-      {warmupActivities.length > 0 && (
-        <div className="mb-3 flex flex-col gap-2">
-          {warmupActivities.map((activity, idx) => (
-            <div
-              key={idx}
-              className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900"
-            >
-              <span className="text-lg">{warmupTypeEmoji[activity.type]}</span>
-              <select
-                value={activity.type}
-                onChange={(e) => {
-                  const copy = [...warmupActivities];
-                  copy[idx] = { ...copy[idx], type: e.target.value as WarmupActivityType };
-                  setWarmupActivities(copy);
-                }}
-                className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-              >
-                {warmupTypes.map((t) => (
-                  <option key={t} value={t}>{warmupTypeLabels[t]}</option>
-                ))}
-              </select>
-              <input
-                type="text"
-                inputMode="numeric"
-                placeholder="min"
-                value={activity.time || ""}
-                onChange={(e) => {
-                  const copy = [...warmupActivities];
-                  copy[idx] = { ...copy[idx], time: e.target.value || undefined };
-                  setWarmupActivities(copy);
-                }}
-                className="w-16 rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-              />
-              <span className="text-xs text-zinc-400">min</span>
-              <input
-                type="text"
-                inputMode="decimal"
-                placeholder="km"
-                value={activity.distance || ""}
-                onChange={(e) => {
-                  const copy = [...warmupActivities];
-                  copy[idx] = { ...copy[idx], distance: e.target.value || undefined };
-                  setWarmupActivities(copy);
-                }}
-                className="w-16 rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-              />
-              <span className="text-xs text-zinc-400">km</span>
-              <button
-                onClick={() => setWarmupActivities(warmupActivities.filter((_, i) => i !== idx))}
-                className="ml-auto rounded p-1 text-zinc-400 hover:text-red-500"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="mb-4 flex flex-wrap gap-2">
-        {warmupTypes.map((t) => (
-          <button
-            key={t}
-            onClick={() => setWarmupActivities([...warmupActivities, { type: t }])}
-            className="flex items-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-600 transition-all hover:border-amber-400 hover:text-amber-600 active:scale-[0.98] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400"
-          >
-            <span>{warmupTypeEmoji[t]}</span>
-            {warmupTypeLabels[t]}
-          </button>
-        ))}
-      </div>
-
-      <button
-        onClick={onDone}
-        className="w-full rounded-xl bg-amber-500 py-4 text-base font-bold text-white transition-all hover:bg-amber-600 active:scale-[0.98]"
-      >
-        {warmupActivities.length > 0 ? "Verder" : "Geen warmup, verder"}
-      </button>
-    </div>
-  );
-}
-
 function StepReview({
   session,
   onRemoveExercise,
@@ -437,38 +267,8 @@ function StepReview({
         Jouw training
       </h2>
       <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
-        Dit is wat de coach voor je heeft samengesteld. Je kunt oefeningen verwijderen voor je start.
+        Dit is wat de coach voor je heeft samengesteld. Haal weg wat je niet wilt. Hardlopen, fietsen of roeien voeg je tijdens de training toe.
       </p>
-
-      {session.warmupActivities.length > 0 && (
-        <div className="mb-4">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-            Warmup
-          </h3>
-          <div className="flex flex-col gap-2">
-            {session.warmupActivities.map((a, i) => {
-              const desc = [
-                a.time ? `${a.time} min` : null,
-                a.distance ? `${a.distance} km` : null,
-              ].filter(Boolean).join(", ");
-              return (
-                <div
-                  key={i}
-                  className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900"
-                >
-                  <span className="text-lg">{warmupTypeEmoji[a.type]}</span>
-                  <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                    {warmupTypeLabels[a.type]}
-                  </span>
-                  {desc && (
-                    <span className="text-sm text-zinc-500 dark:text-zinc-400">{desc}</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       <div className="mb-4">
         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">

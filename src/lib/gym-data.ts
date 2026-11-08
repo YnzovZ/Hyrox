@@ -103,25 +103,37 @@ export interface WarmupConfig {
   intervals: WarmupInterval[];
 }
 
-export type WarmupActivityType = "fiets" | "loopband" | "roeier";
+export type ActivityType = "hardlopen" | "loopband" | "fiets" | "roeier" | "skierg";
 
-export interface WarmupActivity {
-  type: WarmupActivityType;
+export interface SessionActivity {
+  type: ActivityType;
   time?: string;
   distance?: string;
 }
 
-export const warmupTypeLabels: Record<WarmupActivityType, string> = {
-  fiets: "Fietsen",
+export const activityTypes: ActivityType[] = ["hardlopen", "loopband", "fiets", "roeier", "skierg"];
+
+export const activityLabels: Record<ActivityType, string> = {
+  hardlopen: "Hardlopen",
   loopband: "Loopband",
+  fiets: "Fietsen",
   roeier: "Roeien",
+  skierg: "SkiErg",
 };
 
-export const warmupTypeEmoji: Record<WarmupActivityType, string> = {
-  fiets: "\u{1F6B2}",
+export const activityEmoji: Record<ActivityType, string> = {
+  hardlopen: "\u{1F3C3}",
   loopband: "\u{1F3C3}",
+  fiets: "\u{1F6B2}",
   roeier: "\u{1F6A3}",
+  skierg: "\u{26F7}\u{FE0F}",
 };
+
+export function describeActivity(a: { time?: string; distance?: string }): string {
+  return [a.time ? `${a.time} min` : null, a.distance ? `${a.distance} km` : null]
+    .filter(Boolean)
+    .join(", ");
+}
 
 export const defaultWarmups: Record<string, WarmupConfig> = {
   bike5: {
@@ -241,6 +253,35 @@ export const presetTrainings: GymTrainingTemplate[] = [
     ],
   },
   {
+    id: "preset-legs-core",
+    name: "Benen + Core",
+    description: "Benen, billen en romp",
+    muscleGroups: ["legs", "core"],
+    warmupKey: "bike5",
+    exercises: [
+      { exerciseId: "leg-press", sets: 3, reps: "10" },
+      { exerciseId: "romanian-deadlift", sets: 3, reps: "10" },
+      { exerciseId: "leg-curl", sets: 3, reps: "12" },
+      { exerciseId: "leg-extension", sets: 3, reps: "12" },
+      { exerciseId: "calf-raise-mc", sets: 3, reps: "15" },
+      { exerciseId: "ab-crunch-mc", sets: 3, reps: "15" },
+    ],
+  },
+  {
+    id: "preset-arms",
+    name: "Armen",
+    description: "Biceps en triceps",
+    muscleGroups: ["biceps", "triceps"],
+    warmupKey: "bike5",
+    exercises: [
+      { exerciseId: "arm-curl-mc", sets: 3, reps: "10" },
+      { exerciseId: "tricep-rope-ext", sets: 3, reps: "12" },
+      { exerciseId: "hammer-curl-db", sets: 3, reps: "10" },
+      { exerciseId: "overhead-tricep-ext", sets: 3, reps: "12" },
+      { exerciseId: "arm-extension-mc", sets: 3, reps: "10" },
+    ],
+  },
+  {
     id: "preset-full-body",
     name: "Full Body",
     description: "Alles een beetje",
@@ -310,48 +351,166 @@ export function getCoachTip(
   return "Even niet in de gym geweest. Begin met full body, dan is alles weer wakker. Ga gewoon.";
 }
 
-export function suggestNextTraining(
-  recentSessions: { trainingId: string; muscleGroups: string[] }[],
-  daysSinceLastSession?: number,
-): GymTrainingTemplate {
-  const fullBody = presetTrainings.find((t) => t.id === "preset-full-body")!;
+// --- Advies volgende training ---
 
-  if (recentSessions.length === 0 || (daysSinceLastSession != null && daysSinceLastSession >= 5)) {
-    return fullBody;
+export const trainingDayOptions = [
+  { days: 0, label: "Vandaag" },
+  { days: 1, label: "Morgen" },
+  { days: 2, label: "Overmorgen" },
+  { days: 3, label: "Later" },
+];
+
+export interface AdviceSession {
+  trainingName: string;
+  completedAt: string;
+  muscleGroups: string[];
+  exercises: { exerciseId: string; done: boolean }[];
+}
+
+export interface AdviceCandidate {
+  id: string;
+  name: string;
+  groups: MuscleGroup[];
+}
+
+export interface TrainingAdvice {
+  candidateId: string;
+  reason: string;
+  restAdvised: boolean;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function startOfDay(d: Date): number {
+  const c = new Date(d);
+  c.setHours(0, 0, 0, 0);
+  return c.getTime();
+}
+
+function trainedGroups(s: AdviceSession): MuscleGroup[] {
+  if (s.exercises.length === 0) return s.muscleGroups as MuscleGroup[];
+  const groups = new Set<MuscleGroup>();
+  for (const ex of s.exercises) {
+    if (!ex.done) continue;
+    const def = getExerciseById(ex.exerciseId);
+    if (def) groups.add(def.muscleGroup);
+  }
+  return Array.from(groups);
+}
+
+function skippedGroups(s: AdviceSession): MuscleGroup[] {
+  const done = new Set(trainedGroups(s));
+  const skipped = new Set<MuscleGroup>();
+  for (const ex of s.exercises) {
+    if (ex.done) continue;
+    const def = getExerciseById(ex.exerciseId);
+    if (def && !done.has(def.muscleGroup)) skipped.add(def.muscleGroup);
+  }
+  return Array.from(skipped);
+}
+
+// Core herstelt sneller dan grote spiergroepen
+function recoveryDays(g: MuscleGroup): number {
+  return g === "core" ? 1 : 2;
+}
+
+function joinNl(items: string[]): string {
+  if (items.length <= 1) return items.join("");
+  return `${items.slice(0, -1).join(", ")} en ${items[items.length - 1]}`;
+}
+
+function groupList(groups: MuscleGroup[], capitalize = false): string {
+  const text = joinNl(groups.map((g) => muscleGroupLabels[g].toLowerCase()));
+  return capitalize ? text.charAt(0).toUpperCase() + text.slice(1) : text;
+}
+
+export function adviseNextTraining(
+  sessions: AdviceSession[],
+  daysUntil: number,
+  candidates: AdviceCandidate[],
+): TrainingAdvice {
+  const planned = startOfDay(new Date(Date.now() + daysUntil * DAY_MS));
+  const fullBody = candidates.find((c) => c.groups.length >= 5) ?? candidates[0];
+
+  const strength = sessions
+    .filter((s) => trainedGroups(s).length > 0)
+    .filter((s) => planned - startOfDay(new Date(s.completedAt)) <= 14 * DAY_MS)
+    .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
+
+  if (strength.length === 0) {
+    return {
+      candidateId: fullBody.id,
+      reason: "Geen recente krachttraining gevonden. Begin met full body, dan train je alles een keer aan.",
+      restAdvised: false,
+    };
   }
 
-  const groupCounts: Record<MuscleGroup, number> = {
-    chest: 0, back: 0, shoulders: 0, biceps: 0, triceps: 0, legs: 0, core: 0,
-  };
-  for (const s of recentSessions) {
-    for (const g of s.muscleGroups) {
-      if (g in groupCounts) groupCounts[g as MuscleGroup]++;
+  const gapFor = new Map<MuscleGroup, number>();
+  for (const s of strength) {
+    const gap = Math.round((planned - startOfDay(new Date(s.completedAt))) / DAY_MS);
+    for (const g of trainedGroups(s)) {
+      if (!gapFor.has(g)) gapFor.set(g, gap);
     }
   }
+  const gap = (g: MuscleGroup) => gapFor.get(g) ?? 14;
+  const recovered = (g: MuscleGroup) => gap(g) >= recoveryDays(g);
 
-  const recentIds = new Set(recentSessions.slice(0, 2).map((s) => s.trainingId));
+  const last = strength[0];
+  const lastGap = Math.round((planned - startOfDay(new Date(last.completedAt))) / DAY_MS);
+  const whenLabel = ["vandaag", "morgen", "overmorgen"][daysUntil] ?? "over een paar dagen";
+  const intro = lastGap === 0
+    ? `Je hebt ${whenLabel} al ${last.trainingName} gedaan.`
+    : daysUntil >= 3
+      ? `Je laatste training (${last.trainingName}) is dan minstens ${lastGap} dagen geleden.`
+      : `Tussen je laatste training (${last.trainingName}) en ${whenLabel} ${lastGap === 1 ? "zit één dag" : `zitten ${lastGap} dagen`}.`;
 
-  let bestTraining = presetTrainings[0];
+  if (lastGap >= 3) {
+    return {
+      candidateId: fullBody.id,
+      reason: `${intro} Alles is dan hersteld, dus ${fullBody.name.toLowerCase()} is de beste keuze.`,
+      restAdvised: false,
+    };
+  }
+
+  const skipped = skippedGroups(last).filter((g) => gap(g) > lastGap);
+
+  let best = candidates[0];
   let bestScore = -Infinity;
-
-  for (const training of presetTrainings) {
+  for (const c of candidates) {
     let score = 0;
-    for (const mg of training.muscleGroups) {
-      score += 3 - groupCounts[mg];
+    for (const g of c.groups) {
+      score += recovered(g) ? Math.min(gap(g), 3) : -5;
     }
-    score = score / training.muscleGroups.length;
-
-    if (recentIds.has(training.id)) {
-      score -= 10;
-    }
-
+    score = score / c.groups.length + c.groups.length * 0.15;
+    if (c.groups.some((g) => skipped.includes(g))) score += 2;
     if (score > bestScore) {
       bestScore = score;
-      bestTraining = training;
+      best = c;
     }
   }
 
-  return bestTraining;
+  const notRecovered = (Object.keys(muscleGroupLabels) as MuscleGroup[]).filter((g) => !recovered(g));
+  const blocked = best.groups.filter((g) => !recovered(g));
+
+  if (blocked.length > 0) {
+    return {
+      candidateId: best.id,
+      reason: `${intro} ${groupList(blocked, true)} ${blocked.length === 1 ? "is" : "zijn"} dan nog niet hersteld. Neem rust of doe een activiteit zoals hardlopen, fietsen of roeien. Wil je toch krachttraining, kies dan ${best.name}.`,
+      restAdvised: true,
+    };
+  }
+
+  const parts = [intro];
+  if (notRecovered.length > 0) {
+    parts.push(`${groupList(notRecovered, true)} ${notRecovered.length === 1 ? "heeft" : "hebben"} dan nog rust nodig.`);
+  }
+  const skippedInBest = best.groups.filter((g) => skipped.includes(g));
+  if (skippedInBest.length > 0) {
+    parts.push(`${groupList(skippedInBest, true)} heb je vorige keer overgeslagen, die pak je nu mee.`);
+  }
+  parts.push(`${best.name} traint ${groupList(best.groups)}, en die zijn dan klaar voor werk.`);
+
+  return { candidateId: best.id, reason: parts.join(" "), restAdvised: false };
 }
 
 // --- Coach / Personal Trainer ---
@@ -369,6 +528,7 @@ export const coachFocusOptions: CoachFocusOption[] = [
   { id: "pull", label: "Pull", description: "Rug, biceps", groups: ["back", "biceps"] },
   { id: "upper", label: "Bovenlichaam", description: "Borst, rug, schouders", groups: ["chest", "back", "shoulders"] },
   { id: "legs", label: "Benen", description: "Benen en core", groups: ["legs", "core"] },
+  { id: "arms", label: "Armen", description: "Biceps en triceps", groups: ["biceps", "triceps"] },
   { id: "chest", label: "Borst", description: "Focus op borst", groups: ["chest"] },
   { id: "back", label: "Rug", description: "Focus op rug", groups: ["back"] },
   { id: "shoulders", label: "Schouders", description: "Focus op schouders", groups: ["shoulders"] },
@@ -378,7 +538,6 @@ export interface CoachSession {
   name: string;
   muscleGroups: MuscleGroup[];
   exercises: GymTrainingExercise[];
-  warmupActivities: WarmupActivity[];
 }
 
 export function generateCoachExercises(
