@@ -275,6 +275,14 @@ export function saveGymSession(session: CompletedGymSession): void {
   safeSet(STORAGE_KEYS.gymSessions, all);
 }
 
+export function updateGymSession(id: string, updates: Partial<CompletedGymSession>): void {
+  const all = getGymSessions();
+  const idx = all.findIndex((s) => s.id === id);
+  if (idx === -1) return;
+  all[idx] = { ...all[idx], ...updates };
+  safeSet(STORAGE_KEYS.gymSessions, all);
+}
+
 export function getLastStrengthDate(): Date | null {
   const dates: Date[] = [];
 

@@ -182,6 +182,48 @@ export default function CoachPage() {
   );
 }
 
+function getCoachAdvice(
+  recentGroupInfo: { group: string; daysAgo: number }[],
+  daysSince?: number,
+): { text: string; recommendedId: string | null } {
+  const allGroups: MuscleGroup[] = ["chest", "back", "shoulders", "biceps", "triceps", "legs", "core"];
+  const groupDaysMap = new Map(recentGroupInfo.map((r) => [r.group, r.daysAgo]));
+
+  if (recentGroupInfo.length === 0 || (daysSince != null && daysSince >= 5)) {
+    return { text: "Je bent even niet in de gym geweest. Full body is een goede start.", recommendedId: "full-body" };
+  }
+
+  const untrained = allGroups.filter((g) => !groupDaysMap.has(g));
+  const stale = allGroups.filter((g) => {
+    const d = groupDaysMap.get(g);
+    return d !== undefined && d >= 3;
+  });
+  const needsWork = [...untrained, ...stale];
+
+  if (needsWork.includes("legs") && needsWork.includes("core")) {
+    return { text: `Benen en core zijn het langst niet getraind. Goed moment voor een benendag.`, recommendedId: "legs" };
+  }
+  if (needsWork.includes("chest") || needsWork.includes("shoulders") || needsWork.includes("triceps")) {
+    const missing = needsWork.filter((g) => ["chest", "shoulders", "triceps"].includes(g));
+    const labels = missing.map((g) => muscleGroupLabels[g as MuscleGroup]).join(", ");
+    return { text: `${labels} ${missing.length === 1 ? "is" : "zijn"} aan de beurt. Push past hier goed bij.`, recommendedId: "push" };
+  }
+  if (needsWork.includes("back") || needsWork.includes("biceps")) {
+    return { text: "Rug en biceps zijn het langst geleden. Pull is een logische keuze.", recommendedId: "pull" };
+  }
+  if (needsWork.includes("legs")) {
+    return { text: "Benen heb je het langst niet gedaan. Tijd voor een benendag.", recommendedId: "legs" };
+  }
+
+  const recent = recentGroupInfo.filter((r) => r.daysAgo <= 1).map((r) => r.group);
+  if (recent.length > 0) {
+    const labels = recent.map((g) => muscleGroupLabels[g as MuscleGroup]).join(", ");
+    return { text: `${labels} heb je net getraind. Kies iets anders vandaag.`, recommendedId: null };
+  }
+
+  return { text: "", recommendedId: null };
+}
+
 function StepFocus({
   options,
   recentGroupInfo,
@@ -194,12 +236,23 @@ function StepFocus({
   onSelect: (opt: CoachFocusOption) => void;
 }) {
   const groupDaysMap = new Map(recentGroupInfo.map((r) => [r.group, r.daysAgo]));
+  const advice = getCoachAdvice(recentGroupInfo, daysSince);
 
   return (
     <div>
       <h2 className="mb-2 text-lg font-bold text-zinc-900 dark:text-zinc-100">
         Waar heb je zin in?
       </h2>
+      {advice.text && (
+        <div className="mb-4 flex gap-3 rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-950/20">
+          <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-green-100 text-base dark:bg-green-900/40">
+            🧠
+          </span>
+          <p className="text-sm leading-relaxed text-green-700 dark:text-green-300">
+            {advice.text}
+          </p>
+        </div>
+      )}
       {recentGroupInfo.length > 0 && (
         <div className="mb-4 rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
           <p className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-400">
@@ -226,19 +279,29 @@ function StepFocus({
             const d = groupDaysMap.get(g);
             return d !== undefined && d <= 1;
           });
+          const isRecommended = advice.recommendedId === opt.id;
           return (
             <button
               key={opt.id}
               onClick={() => onSelect(opt)}
               className={`rounded-xl border p-4 text-left transition-all active:scale-[0.98] ${
-                groupsRecent
-                  ? "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
-                  : "border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20"
+                isRecommended
+                  ? "border-green-300 bg-green-50 ring-2 ring-green-200 dark:border-green-700 dark:bg-green-950/30 dark:ring-green-800"
+                  : groupsRecent
+                    ? "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
+                    : "border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20"
               }`}
             >
-              <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                {opt.label}
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                  {opt.label}
+                </h3>
+                {isRecommended && (
+                  <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                    Aanbevolen
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-zinc-500 dark:text-zinc-400">{opt.description}</p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {opt.groups.map((g) => (

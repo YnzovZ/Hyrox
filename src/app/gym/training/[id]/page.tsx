@@ -436,6 +436,7 @@ export default function GymTrainingPage() {
 
     const currentMuscleGroups = new Set<MuscleGroup>();
     for (const ex of activeExercises) {
+      if (!ex.done) continue;
       const def = getExerciseById(ex.exerciseId);
       if (def) currentMuscleGroups.add(def.muscleGroup);
     }
