@@ -15,7 +15,7 @@ import {
   type MuscleGroup,
   type TrainingAdvice,
 } from "@/lib/gym-data";
-import { getRecentGymSessions, type CompletedGymSession } from "@/lib/storage";
+import { getRecentGymSessions, saveGymTraining, type CompletedGymSession } from "@/lib/storage";
 
 const focusCandidates = coachFocusOptions.map((o) => ({ id: o.id, name: o.label, groups: o.groups }));
 
@@ -47,8 +47,9 @@ export default function CoachPage() {
 
   function handleSelectFocus(option: CoachFocusOption) {
     const recentExerciseIds = new Set(recent.slice(0, 3).flatMap((s) => s.exercises.map((e) => e.exerciseId)));
+    const day = new Date(Date.now() + (daysUntil ?? 0) * 86400000);
     setGeneratedSession({
-      name: `Coach: ${option.label}`,
+      name: `${option.label} ${day.toLocaleDateString("nl-NL", { day: "numeric", month: "long" })}`,
       muscleGroups: option.groups,
       exercises: generateCoachExercises(option.groups, recentExerciseIds),
     });
@@ -63,12 +64,17 @@ export default function CoachPage() {
     });
   }
 
-  function startTraining() {
+  function saveGenerated(startNow: boolean) {
     if (!generatedSession) return;
-    try {
-      sessionStorage.setItem("hyrox_coach_session", JSON.stringify(generatedSession));
-    } catch {}
-    router.push("/gym/training/coach");
+    const trainingId = `coach-${Date.now()}`;
+    saveGymTraining({
+      id: trainingId,
+      name: generatedSession.name.trim() || "Coach-training",
+      exercises: generatedSession.exercises,
+      warmupKey: "none",
+      createdAt: new Date().toISOString(),
+    });
+    router.push(startNow ? `/gym/training/custom-${trainingId}` : "/gym");
   }
 
   if (!mounted) {
@@ -121,8 +127,10 @@ export default function CoachPage() {
       {step === 3 && generatedSession && (
         <StepReview
           session={generatedSession}
+          onRename={(name) => setGeneratedSession({ ...generatedSession, name })}
           onRemoveExercise={removeGeneratedExercise}
-          onStart={startTraining}
+          onStart={() => saveGenerated(true)}
+          onSave={() => saveGenerated(false)}
         />
       )}
     </main>
@@ -245,18 +253,27 @@ function StepFocus({
 
 function StepReview({
   session,
+  onRename,
   onRemoveExercise,
   onStart,
+  onSave,
 }: {
   session: CoachSession;
+  onRename: (name: string) => void;
   onRemoveExercise: (idx: number) => void;
   onStart: () => void;
+  onSave: () => void;
 }) {
   return (
     <div>
-      <h2 className="mb-2 text-lg font-bold text-zinc-900 dark:text-zinc-100">
-        Jouw training
-      </h2>
+      <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+        Naam van je training
+      </label>
+      <input
+        value={session.name}
+        onChange={(e) => onRename(e.target.value)}
+        className="mb-4 w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-lg font-bold dark:border-zinc-700 dark:bg-zinc-900"
+      />
       <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
         Dit is wat de coach voor je heeft samengesteld. Haal weg wat je niet wilt. Hardlopen, fietsen of roeien voeg je tijdens de training toe.
       </p>
@@ -307,7 +324,14 @@ function StepReview({
             : "bg-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600"
         }`}
       >
-        Start training
+        Training nu doen
+      </button>
+      <button
+        onClick={onSave}
+        disabled={session.exercises.length === 0}
+        className="mt-3 w-full rounded-xl border border-zinc-200 py-3.5 text-base font-semibold text-zinc-700 transition-all active:scale-[0.98] disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300"
+      >
+        Opslaan voor later
       </button>
     </div>
   );

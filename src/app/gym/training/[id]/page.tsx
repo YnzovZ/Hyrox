@@ -19,7 +19,6 @@ import {
   type ActivityType,
   type MuscleGroup,
   type GymExercise,
-  type CoachSession,
 } from "@/lib/gym-data";
 import {
   getGymTrainings,
@@ -28,6 +27,9 @@ import {
   saveGymSession,
   saveGymTraining,
   getCalendarWeek,
+  getTrainingDraft,
+  saveTrainingDraft,
+  clearTrainingDraft,
 } from "@/lib/storage";
 import ActivitySheet from "@/components/ActivitySheet";
 import BosuReminder from "@/components/BosuReminder";
@@ -66,9 +68,11 @@ function SwipeableCard({
 }) {
   const contentRef = useRef<HTMLDivElement>(null);
   const startX = useRef(0);
+  const startY = useRef(0);
   const offsetRef = useRef(0);
   const swiping = useRef(false);
   const hasMoved = useRef(false);
+  const isHorizontal = useRef<boolean | null>(null);
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -94,12 +98,22 @@ function SwipeableCard({
   function onTouchStart(e: React.TouchEvent) {
     if ((e.target as HTMLElement).closest("[data-drag-handle]")) return;
     startX.current = e.touches[0].clientX;
+    startY.current = e.touches[0].clientY;
     swiping.current = true;
     hasMoved.current = false;
+    isHorizontal.current = null;
   }
 
   function onTouchMove(e: React.TouchEvent) {
     if (!swiping.current || !contentRef.current) return;
+    const dx = e.touches[0].clientX - startX.current;
+    const dy = e.touches[0].clientY - startY.current;
+    // Pas schuiven als de beweging duidelijk horizontaal is, anders is het scrollen
+    if (isHorizontal.current === null) {
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+      isHorizontal.current = Math.abs(dx) > Math.abs(dy) * 1.5;
+    }
+    if (!isHorizontal.current) return;
     hasMoved.current = true;
     const base = isOpen ? -DELETE_BTN_W : 0;
     const diff = e.touches[0].clientX - startX.current + base;
@@ -161,7 +175,7 @@ function SwipeableCard({
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        className="relative z-10"
+        className="relative z-10 rounded-xl bg-[var(--background)]"
       >
         {children}
       </div>
@@ -189,12 +203,20 @@ export default function GymTrainingPage() {
   const [mounted, setMounted] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [filterGroup, setFilterGroup] = useState<MuscleGroup | "all">("all");
+  const [restoredAt, setRestoredAt] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const initialSnapshot = useRef<string | null>(null);
 
   const [openSwipeIdx, setOpenSwipeIdx] = useState<number | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
 
   const dragStartY = useRef(0);
+  const dragStartScrollY = useRef(0);
+  const lastTouchY = useRef(0);
+  const dragOffsetRef = useRef(0);
+  const autoScrollFrame = useRef<number | null>(null);
   const isDragActive = useRef(false);
   const pendingDragIdx = useRef<number | null>(null);
   const itemPositions = useRef<{ top: number; height: number }[]>([]);
@@ -213,20 +235,7 @@ export default function GymTrainingPage() {
     let muscleGroups: MuscleGroup[] = [];
     let sourceId = id;
 
-    if (id === "coach") {
-      try {
-        const stored = sessionStorage.getItem("hyrox_coach_session");
-        if (!stored) { router.push("/gym"); return; }
-        const session: CoachSession = JSON.parse(stored);
-        name = session.name;
-        exercises = session.exercises;
-        muscleGroups = session.muscleGroups;
-        sourceId = "coach";
-      } catch {
-        router.push("/gym");
-        return;
-      }
-    } else if (id.startsWith("custom-")) {
+    if (id.startsWith("custom-")) {
       const customId = id.replace("custom-", "");
       const customs = getGymTrainings();
       const custom = customs.find((t) => t.id === customId);
@@ -263,8 +272,7 @@ export default function GymTrainingPage() {
       const minutes = warmup.intervals.reduce((sum, i) => sum + i.minutes, 0);
       plannedActivities = [{ type: warmup.type, time: String(minutes) }];
     }
-    setTraining({ name, exercises, muscleGroups, sourceId });
-    setActivities(plannedActivities.map((activity) => ({ activity, done: false })));
+    const plannedTracked = plannedActivities.map((activity) => ({ activity, done: false }));
 
     const active: ActiveExercise[] = exercises.map((ex) => {
       const def = getExerciseById(ex.exerciseId);
@@ -279,10 +287,56 @@ export default function GymTrainingPage() {
         done: false,
       };
     });
-    setActiveExercises(active);
+    initialSnapshot.current = JSON.stringify({ name, exercises: active, activities: plannedTracked });
+
+    const draft = getTrainingDraft(id);
+    if (draft) {
+      setTraining({ name: draft.name, exercises, muscleGroups, sourceId });
+      setActiveExercises(draft.exercises);
+      setActivities(draft.activities as TrackedActivity[]);
+      setRestoredAt(draft.updatedAt);
+    } else {
+      setTraining({ name, exercises, muscleGroups, sourceId });
+      setActiveExercises(active);
+      setActivities(plannedTracked);
+    }
+  }
+
+  // Tussenstand bewaren, zodat een training niet verdwijnt als je de app sluit
+  useEffect(() => {
+    if (!training || showComplete || initialSnapshot.current === null) return;
+    const snapshot = JSON.stringify({ name: training.name, exercises: activeExercises, activities });
+    if (snapshot === initialSnapshot.current) {
+      clearTrainingDraft(id);
+    } else {
+      saveTrainingDraft(id, {
+        name: training.name,
+        exercises: activeExercises,
+        activities,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+  }, [id, training, activeExercises, activities, showComplete]);
+
+  function restartTraining() {
+    clearTrainingDraft(id);
+    setRestoredAt(null);
+    loadTraining();
+  }
+
+  function saveName() {
+    if (!training) return;
+    const name = nameDraft.trim() || training.name;
+    setTraining({ ...training, name });
+    if (id.startsWith("custom-")) {
+      const custom = getGymTrainings().find((t) => t.id === training.sourceId);
+      if (custom) saveGymTraining({ ...custom, name });
+    }
+    setEditingName(false);
   }
 
   function toggleExerciseDone(idx: number) {
+    setOpenSwipeIdx(null);
     setActiveExercises((prev) =>
       prev.map((ex, i) => (i === idx ? { ...ex, done: !ex.done } : ex))
     );
@@ -354,15 +408,40 @@ export default function GymTrainingPage() {
     if (!pos[dragIdx]) return dragIdx;
 
     const draggedCenter = pos[dragIdx].top + pos[dragIdx].height / 2 + offset;
-    let target = dragIdx;
 
-    for (let i = 0; i < pos.length; i++) {
-      if (i === dragIdx || !pos[i]) continue;
-      const mid = pos[i].top + pos[i].height / 2;
-      if (dragIdx < i && draggedCenter > mid) target = i;
-      if (dragIdx > i && draggedCenter < mid) target = i;
+    // Omlaag: de verste kaart waar je voorbij bent. Omhoog: de bovenste.
+    let target = dragIdx;
+    for (let i = dragIdx + 1; i < pos.length; i++) {
+      if (pos[i] && draggedCenter > pos[i].top + pos[i].height / 2) target = i;
+    }
+    for (let i = dragIdx - 1; i >= 0; i--) {
+      if (pos[i] && draggedCenter < pos[i].top + pos[i].height / 2) target = i;
     }
     return target;
+  }
+
+  function updateDragOffset() {
+    const offset = lastTouchY.current - dragStartY.current + (window.scrollY - dragStartScrollY.current);
+    dragOffsetRef.current = offset;
+    setDragOffset(offset);
+  }
+
+  function runAutoScroll() {
+    if (!isDragActive.current) {
+      autoScrollFrame.current = null;
+      return;
+    }
+    const y = lastTouchY.current;
+    const topEdge = 120;
+    const bottomEdge = window.innerHeight - 160;
+    let dy = 0;
+    if (y < topEdge) dy = -Math.ceil((topEdge - y) / 6);
+    else if (y > bottomEdge) dy = Math.ceil((y - bottomEdge) / 6);
+    if (dy !== 0) {
+      window.scrollBy(0, dy);
+      updateDragOffset();
+    }
+    autoScrollFrame.current = requestAnimationFrame(runAutoScroll);
   }
 
   function getItemStyle(i: number): React.CSSProperties {
@@ -394,6 +473,8 @@ export default function GymTrainingPage() {
   function handleDragTouchStart(idx: number, clientY: number) {
     pendingDragIdx.current = idx;
     dragStartY.current = clientY;
+    dragStartScrollY.current = window.scrollY;
+    lastTouchY.current = clientY;
     isDragActive.current = false;
     setOpenSwipeIdx(null);
   }
@@ -401,25 +482,31 @@ export default function GymTrainingPage() {
   function handleContainerTouchMove(e: React.TouchEvent) {
     if (pendingDragIdx.current === null && dragIdx === null) return;
 
-    const clientY = e.touches[0].clientY;
-    const offset = clientY - dragStartY.current;
+    lastTouchY.current = e.touches[0].clientY;
 
     if (!isDragActive.current) {
-      if (Math.abs(offset) > DRAG_THRESHOLD) {
+      if (Math.abs(lastTouchY.current - dragStartY.current) > DRAG_THRESHOLD) {
         isDragActive.current = true;
         cacheItemPositions();
         setDragIdx(pendingDragIdx.current);
-        setDragOffset(offset);
+        updateDragOffset();
+        if (autoScrollFrame.current === null) {
+          autoScrollFrame.current = requestAnimationFrame(runAutoScroll);
+        }
       }
       return;
     }
 
-    setDragOffset(offset);
+    updateDragOffset();
   }
 
   function handleContainerTouchEnd() {
+    if (autoScrollFrame.current !== null) {
+      cancelAnimationFrame(autoScrollFrame.current);
+      autoScrollFrame.current = null;
+    }
     if (isDragActive.current && dragIdx !== null) {
-      const target = computeTargetIdx(dragOffset);
+      const target = computeTargetIdx(dragOffsetRef.current);
       if (target !== dragIdx) {
         setActiveExercises((prev) => {
           const copy = [...prev];
@@ -477,9 +564,8 @@ export default function GymTrainingPage() {
       })),
     });
 
-    if (id === "coach") {
-      try { sessionStorage.removeItem("hyrox_coach_session"); } catch {}
-    } else if (id.startsWith("custom-")) {
+    clearTrainingDraft(id);
+    if (id.startsWith("custom-")) {
       const customId = id.replace("custom-", "");
       const customs = getGymTrainings();
       const custom = customs.find((t) => t.id === customId);
@@ -551,8 +637,31 @@ export default function GymTrainingPage() {
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
-        <div>
-          <h1 className="text-xl font-bold">{training.name}</h1>
+        <div className="min-w-0 flex-1">
+          {editingName ? (
+            <div className="flex items-center gap-2">
+              <input
+                autoFocus
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") saveName(); }}
+                className="min-w-0 flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-base font-bold dark:border-zinc-700 dark:bg-zinc-900"
+              />
+              <button onClick={saveName} className="rounded-lg bg-amber-500 px-3 py-1.5 text-sm font-semibold text-white">
+                Klaar
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => { setNameDraft(training.name); setEditingName(true); }}
+              className="flex max-w-full items-center gap-2 text-left"
+            >
+              <h1 className="truncate text-xl font-bold">{training.name}</h1>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-zinc-400">
+                <path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" />
+              </svg>
+            </button>
+          )}
           <div className="flex flex-wrap gap-1.5">
             {training.muscleGroups.map((mg) => (
               <span key={mg} className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -562,6 +671,17 @@ export default function GymTrainingPage() {
           </div>
         </div>
       </div>
+
+      {restoredAt && (
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+          <span>
+            Je training van {new Date(restoredAt).toLocaleString("nl-NL", { weekday: "short", hour: "2-digit", minute: "2-digit" })} staat nog open. Ga verder waar je was.
+          </span>
+          <button onClick={restartTraining} className="flex-shrink-0 font-semibold underline">
+            Opnieuw
+          </button>
+        </div>
+      )}
 
       <section className="mb-6">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
@@ -622,6 +742,7 @@ export default function GymTrainingPage() {
           className="flex flex-col gap-3"
           onTouchMove={handleContainerTouchMove}
           onTouchEnd={handleContainerTouchEnd}
+          onTouchCancel={handleContainerTouchEnd}
         >
           {activeExercises.map((ex, idx) => {
             const def = getExerciseById(ex.exerciseId);

@@ -251,6 +251,30 @@ export function deleteCustomWorkout(id: string): void {
 
 // --- Gym training storage ---
 
+export interface TrainingDraft {
+  name: string;
+  exercises: { exerciseId: string; name: string; sets: number; reps: string; weight: string; done: boolean }[];
+  activities: { activity: StoredActivity; done: boolean }[];
+  updatedAt: string;
+}
+
+const draftKey = (trainingId: string) => `hyrox_training_draft_${trainingId}`;
+
+export function getTrainingDraft(trainingId: string): TrainingDraft | null {
+  return safeGet<TrainingDraft | null>(draftKey(trainingId), null);
+}
+
+export function saveTrainingDraft(trainingId: string, draft: TrainingDraft): void {
+  safeSet(draftKey(trainingId), draft);
+}
+
+export function clearTrainingDraft(trainingId: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(draftKey(trainingId));
+  } catch {}
+}
+
 export function getGymTrainings(): SavedGymTraining[] {
   return safeGet<SavedGymTraining[]>(STORAGE_KEYS.gymTrainings, []);
 }
