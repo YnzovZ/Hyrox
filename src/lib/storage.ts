@@ -80,6 +80,7 @@ const STORAGE_KEYS = {
   exerciseWeights: "hyrox_weights",
   exerciseProgress: "hyrox_exercise_progress",
   chosenAlternatives: "hyrox_chosen_alts",
+  workoutOverrides: "hyrox_workout_overrides",
   swappedWorkouts: "hyrox_swapped",
   customWorkouts: "hyrox_custom",
   gymTrainings: "hyrox_gym_trainings",
@@ -183,6 +184,31 @@ export function saveExerciseProgress(workoutId: string, progress: number[]): voi
   const all = safeGet<Record<string, number[]>>(STORAGE_KEYS.exerciseProgress, {});
   all[workoutId] = progress;
   safeSet(STORAGE_KEYS.exerciseProgress, all);
+}
+
+export interface PlannedExerciseOverride {
+  name: string;
+  sets?: number;
+  reps?: string;
+  duration?: string;
+  distance?: string;
+  weight?: string;
+  rest?: string;
+  notes?: string;
+  videoUrl?: string;
+  isBonus?: boolean;
+}
+
+export function getWorkoutOverride(workoutId: string): PlannedExerciseOverride[] | null {
+  const all = safeGet<Record<string, PlannedExerciseOverride[]>>(STORAGE_KEYS.workoutOverrides, {});
+  return all[workoutId] ?? null;
+}
+
+export function saveWorkoutOverride(workoutId: string, exercises: PlannedExerciseOverride[] | null): void {
+  const all = safeGet<Record<string, PlannedExerciseOverride[]>>(STORAGE_KEYS.workoutOverrides, {});
+  if (exercises) all[workoutId] = exercises;
+  else delete all[workoutId];
+  safeSet(STORAGE_KEYS.workoutOverrides, all);
 }
 
 export function getChosenAlternative(workoutId: string, exerciseName: string): string | null {

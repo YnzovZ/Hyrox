@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { generateTrainingPlan, weekPhases, Workout, exerciseAlternatives, ExerciseAlternative } from "@/lib/data";
+import { generateTrainingPlan, weekPhases, Workout, Exercise, exerciseAlternatives, ExerciseAlternative } from "@/lib/data";
 import BosuReminder from "@/components/BosuReminder";
-import { isWorkoutCompleted, markWorkoutComplete, removeCompletedWorkout, removeExerciseProgress, getExerciseWeight, saveExerciseWeight, getExerciseProgress, saveExerciseProgress, getChosenAlternative, saveChosenAlternative } from "@/lib/storage";
+import { getWorkoutOverride, saveWorkoutOverride, isWorkoutCompleted, markWorkoutComplete, removeCompletedWorkout, removeExerciseProgress, getExerciseWeight, saveExerciseWeight, getExerciseProgress, saveExerciseProgress, getChosenAlternative, saveChosenAlternative } from "@/lib/storage";
 
 function ProgressOverlay({ stage, onTap, hasThumb }: { stage: number; onTap: () => void; hasThumb: boolean }) {
   const done = stage >= 3;
@@ -124,12 +124,20 @@ export default function WorkoutDetailPage() {
   const [altModal, setAltModal] = useState<{ name: string; alts: ExerciseAlternative[] } | null>(null);
   const [exProgress, setExProgress] = useState<number[]>([]);
   const [chosenAlts, setChosenAlts] = useState<Record<string, string>>({});
+  const [originalExercises, setOriginalExercises] = useState<Exercise[]>([]);
+  const [customized, setCustomized] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<Exercise[]>([]);
 
   useEffect(() => {
     setMounted(true);
     const workouts = generateTrainingPlan();
-    const found = workouts.find((w) => w.id === params.id);
-    if (found) {
+    const plan = workouts.find((w) => w.id === params.id);
+    if (plan) {
+      const override = getWorkoutOverride(plan.id);
+      const found = override ? { ...plan, exercises: override } : plan;
+      setOriginalExercises(plan.exercises);
+      setCustomized(!!override);
       setWorkout(found);
       setCompleted(isWorkoutCompleted(found.id));
       const saved = getExerciseProgress(found.id);
@@ -158,6 +166,47 @@ export default function WorkoutDetailPage() {
     removeExerciseProgress(workout.id);
     setCompleted(false);
     setExProgress(new Array(workout.exercises.length).fill(0));
+  }
+
+  function applyExercises(exercises: Exercise[], isCustom: boolean) {
+    if (!workout) return;
+    // Voortgang meenemen op naam, want de volgorde en het aantal kunnen veranderd zijn
+    const progressByName = new Map(workout.exercises.map((ex, i) => [ex.name, exProgress[i] ?? 0]));
+    const nextProgress = exercises.map((ex) => progressByName.get(ex.name) ?? 0);
+    setWorkout({ ...workout, exercises });
+    setExProgress(nextProgress);
+    saveExerciseProgress(workout.id, nextProgress);
+    setCustomized(isCustom);
+    setEditing(false);
+  }
+
+  function saveEdit() {
+    if (!workout) return;
+    const cleaned = draft
+      .map((ex) => ({ ...ex, name: ex.name.trim() }))
+      .filter((ex) => ex.name);
+    saveWorkoutOverride(workout.id, cleaned);
+    applyExercises(cleaned, true);
+  }
+
+  function resetToOriginal() {
+    if (!workout) return;
+    saveWorkoutOverride(workout.id, null);
+    applyExercises(originalExercises, false);
+  }
+
+  function updateDraft(i: number, patch: Partial<Exercise>) {
+    setDraft((prev) => prev.map((ex, j) => (j === i ? { ...ex, ...patch } : ex)));
+  }
+
+  function moveDraft(i: number, dir: -1 | 1) {
+    setDraft((prev) => {
+      const j = i + dir;
+      if (j < 0 || j >= prev.length) return prev;
+      const copy = [...prev];
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+      return copy;
+    });
   }
 
   function handleExerciseTap(index: number) {
@@ -248,9 +297,94 @@ export default function WorkoutDetailPage() {
       <BosuReminder />
 
       <section className="mb-8">
-        <h2 className="mb-3 text-base font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-          Oefeningen
-        </h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-base font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+            Oefeningen
+            {customized && <span className="ml-2 normal-case tracking-normal text-amber-600 dark:text-amber-400">aangepast</span>}
+          </h2>
+          {!editing && (
+            <button
+              onClick={() => { setDraft(workout.exercises.map((ex) => ({ ...ex }))); setEditing(true); }}
+              className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-amber-600 transition-colors hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/30"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" />
+              </svg>
+              Aanpassen
+            </button>
+          )}
+        </div>
+
+        {editing && (
+          <div className="flex flex-col gap-3">
+            {draft.map((ex, i) => (
+              <div key={i} className="rounded-xl border border-amber-200 bg-white p-3 dark:border-amber-900 dark:bg-zinc-900">
+                <div className="mb-2 flex items-center gap-2">
+                  <input
+                    value={ex.name}
+                    onChange={(e) => updateDraft(i, { name: e.target.value })}
+                    placeholder="Naam oefening"
+                    className="min-w-0 flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base font-semibold dark:border-zinc-700 dark:bg-zinc-800"
+                  />
+                  <button onClick={() => moveDraft(i, -1)} disabled={i === 0} aria-label="Omhoog" className="rounded-lg p-2 text-zinc-500 disabled:opacity-30">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 15l-6-6-6 6" /></svg>
+                  </button>
+                  <button onClick={() => moveDraft(i, 1)} disabled={i === draft.length - 1} aria-label="Omlaag" className="rounded-lg p-2 text-zinc-500 disabled:opacity-30">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+                  </button>
+                  <button onClick={() => setDraft((prev) => prev.filter((_, j) => j !== i))} aria-label="Verwijder" className="rounded-lg p-2 text-red-500">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" /></svg>
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    ["sets", "Sets"],
+                    ["reps", "Reps"],
+                    ["duration", "Tijd"],
+                    ["distance", "Afstand"],
+                  ] as const).map(([field, label]) => (
+                    <label key={field} className="text-xs text-zinc-500 dark:text-zinc-400">
+                      {label}
+                      <input
+                        value={ex[field] ?? ""}
+                        inputMode={field === "sets" ? "numeric" : "text"}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          updateDraft(i, field === "sets"
+                            ? { sets: v.trim() ? Number(v) || undefined : undefined }
+                            : { [field]: v || undefined });
+                        }}
+                        className="mt-0.5 w-full rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <button
+              onClick={() => setDraft((prev) => [...prev, { name: "" }])}
+              className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-white py-3 text-sm font-medium text-zinc-500 transition-all hover:border-amber-400 hover:text-amber-600 active:scale-[0.98] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14" /><path d="M5 12h14" /></svg>
+              Oefening toevoegen
+            </button>
+            <div className="flex gap-3">
+              <button onClick={() => setEditing(false)} className="flex-1 rounded-xl border border-zinc-200 py-3 text-sm font-medium dark:border-zinc-700">
+                Annuleer
+              </button>
+              <button onClick={saveEdit} className="flex-1 rounded-xl bg-amber-500 py-3 text-sm font-semibold text-white">
+                Opslaan
+              </button>
+            </div>
+            {customized && (
+              <button onClick={resetToOriginal} className="text-sm font-medium text-zinc-500 underline dark:text-zinc-400">
+                Terug naar het originele schema
+              </button>
+            )}
+          </div>
+        )}
+
+        {!editing && (
         <div className="flex flex-col gap-2">
           {workout.exercises.map((exercise, i) => {
             const alts = exerciseAlternatives[exercise.name];
@@ -348,6 +482,7 @@ export default function WorkoutDetailPage() {
             );
           })}
         </div>
+        )}
       </section>
 
       <div className="pb-4">
