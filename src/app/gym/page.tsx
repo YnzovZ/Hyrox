@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import BosuReminder from "@/components/BosuReminder";
+import { getRecentStrength, getLastStrengthDate, type StrengthEntry } from "@/lib/strength-history";
 import {
   presetTrainings,
   adviseNextTraining,
@@ -17,17 +18,14 @@ import {
 const presetCandidates = presetTrainings.map((t) => ({ id: t.id, name: t.name, groups: t.muscleGroups }));
 import {
   getGymTrainings,
-  getRecentGymSessions,
-  getLastStrengthDate,
   deleteGymTraining,
   type SavedGymTraining,
-  type CompletedGymSession,
 } from "@/lib/storage";
 
 export default function GymPage() {
   const [customTrainings, setCustomTrainings] = useState<SavedGymTraining[]>([]);
-  const [recentSessions, setRecentSessions] = useState<CompletedGymSession[]>([]);
-  const [adviceSessions, setAdviceSessions] = useState<CompletedGymSession[]>([]);
+  const [recentSessions, setRecentSessions] = useState<StrengthEntry[]>([]);
+  const [adviceSessions, setAdviceSessions] = useState<StrengthEntry[]>([]);
   const [daysUntil, setDaysUntil] = useState(0);
   const [coachTip, setCoachTip] = useState("");
   const [mounted, setMounted] = useState(false);
@@ -36,7 +34,7 @@ export default function GymPage() {
   useEffect(() => {
     setMounted(true);
     setCustomTrainings(getGymTrainings());
-    const recent = getRecentGymSessions(10);
+    const recent = getRecentStrength(10);
     setRecentSessions(recent.slice(0, 5));
     const lastStrength = getLastStrengthDate();
     const daysSince = lastStrength
@@ -126,7 +124,7 @@ export default function GymPage() {
               return (
                 <Link
                   key={s.id}
-                  href={`/gym/session/${s.id}`}
+                  href={s.href}
                   className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 transition-all hover:border-zinc-300 hover:shadow-sm active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
                 >
                   <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
@@ -139,7 +137,7 @@ export default function GymPage() {
                       {s.trainingName}
                     </h3>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      {dayLabel} om {timeLabel} &middot; {s.exercises.length} oefeningen
+                      {dayLabel} om {timeLabel} &middot; {s.exerciseCount} oefeningen
                     </p>
                   </div>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-300 dark:text-zinc-600">

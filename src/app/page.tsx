@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import BosuReminder from "@/components/BosuReminder";
+import { getRecentStrength, type StrengthEntry } from "@/lib/strength-history";
 import { generateTrainingPlan, weekPhases, getWeekDateRange, getWorkoutDate, getDaysUntilRaceDay, formatWorkoutDate, RACE_DAY } from "@/lib/data";
-import { getCalendarWeek, getCompletedWorkouts, getSwappedWorkouts, getCustomWorkoutsForWeek, getRecentGymSessions, type CompletedGymSession } from "@/lib/storage";
+import { getCalendarWeek, getCompletedWorkouts, getSwappedWorkouts, getCustomWorkoutsForWeek } from "@/lib/storage";
 
 const typeColors: Record<string, string> = {
   run: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
@@ -26,7 +27,7 @@ export default function Home() {
   const [weekTotal, setWeekTotal] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
   const [totalWorkouts, setTotalWorkouts] = useState(0);
-  const [recentSessions, setRecentSessions] = useState<CompletedGymSession[]>([]);
+  const [recentSessions, setRecentSessions] = useState<StrengthEntry[]>([]);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -45,7 +46,7 @@ export default function Home() {
     setWeekTotal(weekWorkouts.length + customWorkouts.length);
     setCompletedCount(completed.length);
     setTotalWorkouts(workouts.length);
-    setRecentSessions(getRecentGymSessions(3));
+    setRecentSessions(getRecentStrength(3));
   }, []);
 
   const workouts = generateTrainingPlan();
@@ -228,7 +229,7 @@ export default function Home() {
       {recentSessions.length > 0 && (
         <section className="mb-6">
           <h2 className="mb-3 text-base font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-            Recente gym sessies
+            Recente krachttrainingen
           </h2>
           <div className="flex flex-col gap-2">
             {recentSessions.map((s) => {
@@ -244,7 +245,7 @@ export default function Home() {
               return (
                 <Link
                   key={s.id}
-                  href={`/gym/session/${s.id}`}
+                  href={s.href}
                   className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 transition-all hover:border-zinc-300 hover:shadow-sm active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
                 >
                   <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
@@ -257,7 +258,7 @@ export default function Home() {
                       {s.trainingName}
                     </h3>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      {dayLabel} om {timeLabel} &middot; {s.exercises.length} oefeningen
+                      {dayLabel} om {timeLabel} &middot; {s.exerciseCount} oefeningen
                     </p>
                   </div>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-300 dark:text-zinc-600">

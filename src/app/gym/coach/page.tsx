@@ -15,7 +15,8 @@ import {
   type MuscleGroup,
   type TrainingAdvice,
 } from "@/lib/gym-data";
-import { getRecentGymSessions, saveGymTraining, type CompletedGymSession } from "@/lib/storage";
+import { saveGymTraining } from "@/lib/storage";
+import { getRecentStrength, type StrengthEntry } from "@/lib/strength-history";
 
 const focusCandidates = coachFocusOptions.map((o) => ({ id: o.id, name: o.label, groups: o.groups }));
 
@@ -23,13 +24,13 @@ export default function CoachPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [mounted, setMounted] = useState(false);
-  const [recent, setRecent] = useState<CompletedGymSession[]>([]);
+  const [recent, setRecent] = useState<StrengthEntry[]>([]);
   const [daysUntil, setDaysUntil] = useState<number | null>(null);
   const [generatedSession, setGeneratedSession] = useState<CoachSession | null>(null);
 
   useEffect(() => {
     setMounted(true);
-    setRecent(getRecentGymSessions(10));
+    setRecent(getRecentStrength(10));
     const dag = new URLSearchParams(window.location.search).get("dag");
     if (dag !== null && trainingDayOptions.some((o) => String(o.days) === dag)) {
       setDaysUntil(Number(dag));
@@ -141,7 +142,7 @@ function StepWhen({
   lastSession,
   onSelect,
 }: {
-  lastSession?: CompletedGymSession;
+  lastSession?: StrengthEntry;
   onSelect: (days: number) => void;
 }) {
   let lastLabel: string | null = null;

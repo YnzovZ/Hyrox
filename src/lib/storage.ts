@@ -325,12 +325,6 @@ export function getGymSessions(): CompletedGymSession[] {
   return safeGet<CompletedGymSession[]>(STORAGE_KEYS.gymSessions, []);
 }
 
-export function getRecentGymSessions(count: number): CompletedGymSession[] {
-  return getGymSessions()
-    .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
-    .slice(0, count);
-}
-
 export function saveGymSession(session: CompletedGymSession): void {
   const all = getGymSessions();
   all.push(session);
@@ -343,24 +337,6 @@ export function updateGymSession(id: string, updates: Partial<CompletedGymSessio
   if (idx === -1) return;
   all[idx] = { ...all[idx], ...updates };
   safeSet(STORAGE_KEYS.gymSessions, all);
-}
-
-export function getLastStrengthDate(): Date | null {
-  const dates: Date[] = [];
-
-  for (const s of getGymSessions()) {
-    dates.push(new Date(s.completedAt));
-  }
-  for (const sw of getSwappedWorkouts()) {
-    if (sw.type === "strength") dates.push(new Date(sw.completedAt));
-  }
-  for (const cw of getCustomWorkouts()) {
-    if (cw.type === "strength") dates.push(new Date(cw.completedAt));
-  }
-
-  if (dates.length === 0) return null;
-  dates.sort((a, b) => b.getTime() - a.getTime());
-  return dates[0];
 }
 
 export function getGymWeightForExercise(exerciseId: string): string | null {
